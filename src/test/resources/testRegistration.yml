@@ -1,0 +1,13 @@
+id: 'bigfakeid'
+url: 'http://localhost:8008'
+as_token: 'secretappservicetoken'
+hs_token: 'secrethomeservertoken'
+sender_localpart: '@myappservice:localhost'
+namespaces:
+  users:
+    - exclusive: true
+      regex: '@!as_.*'
+  aliases:
+    - exclusive: false
+      regex: '#!as_.*'
+  rooms: ['!aksjdflknwerqwer:localhost']
