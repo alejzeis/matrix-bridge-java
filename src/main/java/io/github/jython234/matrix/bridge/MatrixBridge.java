@@ -1,7 +1,6 @@
 package io.github.jython234.matrix.bridge;
 
 import io.github.jython234.matrix.appservice.MatrixAppservice;
-import io.github.jython234.matrix.appservice.event.EventHandler;
 import io.github.jython234.matrix.appservice.event.MatrixEvent;
 import lombok.Getter;
 import org.slf4j.Logger;

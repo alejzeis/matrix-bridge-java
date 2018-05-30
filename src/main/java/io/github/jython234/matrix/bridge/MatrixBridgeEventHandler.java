@@ -24,7 +24,7 @@ public final class MatrixBridgeEventHandler implements EventHandler {
         if(this.bridge.eventHandlers.containsKey(matrixEvent.getClass())) {
             this.bridge.eventHandlers.get(matrixEvent.getClass()).forEach((method -> {
                 try {
-                    method.invoke(matrixEvent);
+                    method.invoke(this.bridge, matrixEvent);
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     this.bridge.getLogger().warn("Failed to process event \"" + matrixEvent.getType() + "\" " + matrixEvent.getClass().getName() + ": ");
                     this.bridge.getLogger().warn(e.getClass().getName() + ": " + e.getMessage());

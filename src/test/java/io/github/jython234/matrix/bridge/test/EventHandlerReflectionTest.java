@@ -1,7 +1,6 @@
 package io.github.jython234.matrix.bridge.test;
 
 import io.github.jython234.matrix.appservice.Util;
-import io.github.jython234.matrix.appservice.event.MatrixEvent;
 import io.github.jython234.matrix.appservice.event.TypingMatrixEvent;
 import io.github.jython234.matrix.bridge.MatrixBridge;
 import io.github.jython234.matrix.bridge.MatrixBridgeEventHandler;
@@ -12,9 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class EventHandlerReflectionTest {
 
@@ -25,7 +22,9 @@ class EventHandlerReflectionTest {
 
     public static class DummyBridge extends MatrixBridge {
 
-        public DummyBridge(String configDirectory, String serverURL) {
+        private boolean success = false;
+
+        DummyBridge(String configDirectory, String serverURL) {
             super(configDirectory, serverURL); // Superclass will search for event handler methods
 
             // Check to see if we have found the onTypingEvent successfully as an EventHandler method, and nothing else
@@ -38,7 +37,11 @@ class EventHandlerReflectionTest {
             var handler = new MatrixBridgeEventHandler(this);
             var event = new TypingMatrixEvent();
             event.roomId = "test";
+
             handler.onMatrixEvent(event);
+
+            // Success will be set to true if the method is successfully called
+            assertTrue(success);
         }
 
         @Override
@@ -56,6 +59,8 @@ class EventHandlerReflectionTest {
             // Our little dummy event handler to be found
             assertNotNull(event);
             assertEquals("test", event.roomId);
+
+            success = true;
         }
 
 

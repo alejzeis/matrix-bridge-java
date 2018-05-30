@@ -7,4 +7,6 @@ module io.github.jython234.matrix.bridge {
     requires io.github.jython234.matrix.appservice;
 
     exports io.github.jython234.matrix.bridge;
+
+    opens io.github.jython234.matrix.bridge to lombok;
 }
