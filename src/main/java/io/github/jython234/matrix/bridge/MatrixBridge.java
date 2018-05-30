@@ -35,8 +35,9 @@ public abstract class MatrixBridge {
         this.logger = LoggerFactory.getLogger("MatrixBridge");
 
         this.appservice = new MatrixAppservice(configDirectory + File.separator + "registration.yml", serverURL);
-        this.eventHandlers = new ConcurrentHashMap<>();
+        this.appservice.setEventHandler(new MatrixBridgeEventHandler(this));
 
+        this.eventHandlers = new ConcurrentHashMap<>();
         this.findEventHandlers();
     }
 

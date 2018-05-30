@@ -1,8 +1,10 @@
 package io.github.jython234.matrix.bridge.test;
 
 import io.github.jython234.matrix.appservice.Util;
+import io.github.jython234.matrix.appservice.event.MatrixEvent;
 import io.github.jython234.matrix.appservice.event.TypingMatrixEvent;
 import io.github.jython234.matrix.bridge.MatrixBridge;
+import io.github.jython234.matrix.bridge.MatrixBridgeEventHandler;
 import io.github.jython234.matrix.bridge.MatrixEventHandler;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -32,6 +34,11 @@ class EventHandlerReflectionTest {
             assertNotNull(this.eventHandlers.get(TypingMatrixEvent.class));
             assertEquals(1, this.eventHandlers.get(TypingMatrixEvent.class).size());
             assertEquals("onTypingEvent", this.eventHandlers.get(TypingMatrixEvent.class).get(0).getName());
+
+            var handler = new MatrixBridgeEventHandler(this);
+            var event = new TypingMatrixEvent();
+            event.roomId = "test";
+            handler.onMatrixEvent(event);
         }
 
         @Override
@@ -45,12 +52,14 @@ class EventHandlerReflectionTest {
         }
 
         @MatrixEventHandler
-        protected void onTypingEvent(TypingMatrixEvent event) {
+        public void onTypingEvent(TypingMatrixEvent event) {
             // Our little dummy event handler to be found
+            assertNotNull(event);
+            assertEquals("test", event.roomId);
         }
 
 
-        protected void onTypingEvent2(TypingMatrixEvent event2) {
+        public void onTypingEvent2(TypingMatrixEvent event2) {
             // Another dummy event handler, except there is no annotation
             // it is EXPECTED NOT to be found
         }
