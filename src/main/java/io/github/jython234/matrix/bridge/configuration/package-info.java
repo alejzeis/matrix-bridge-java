@@ -24,12 +24,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-module io.github.jython234.matrix.bridge {
-    requires java.base;
-
-    requires slf4j.api;
-    requires snakeyaml;
-    requires io.github.jython234.matrix.appservice;
-
-    exports io.github.jython234.matrix.bridge;
-}
+/**
+ * Contains classes related to the bridge's YAML configuration file.
+ */
+package io.github.jython234.matrix.bridge.configuration;

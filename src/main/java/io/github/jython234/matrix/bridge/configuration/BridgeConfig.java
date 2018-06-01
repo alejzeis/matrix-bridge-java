@@ -24,12 +24,47 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-module io.github.jython234.matrix.bridge {
-    requires java.base;
+package io.github.jython234.matrix.bridge.configuration;
 
-    requires slf4j.api;
-    requires snakeyaml;
-    requires io.github.jython234.matrix.appservice;
+/**
+ * Represents the bridge's YAML configuration file.
+ * It is loaded using the {@link BridgeConfigLoader} class.
+ *
+ * @author jython234
+ * @see BridgeConfigLoader
+ */
+public class BridgeConfig {
+    /**
+     * The matrix homeserver's URL. This URL is used
+     * internally by the bridge to communicate with the homeserver.
+     * It is never used in user-facing messages, therefore, one could use a
+     * private IP address for this URL and a domain for the public facing URL.
+     *
+     * @see #publicServerURL
+     */
+    protected String serverURL;
 
-    exports io.github.jython234.matrix.bridge;
+    /**
+     * The matrix homeserver's PUBLIC URL. This is used
+     * when the bridge sends links or other user-facing messages.
+     *
+     * @see #serverURL
+     */
+    protected String publicServerURL;
+
+    /**
+     * Get the matrix homeserver's URL.
+     * @return The matrix homeserver's URL.
+     */
+    public String getServerURL() {
+        return this.serverURL;
+    }
+
+    /**
+     * Get the matrix homeserver's public URL.
+     * @return The matrix homeserver's public URL.
+     */
+    public String getPublicServerURL() {
+        return this.publicServerURL;
+    }
 }

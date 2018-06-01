@@ -51,8 +51,8 @@ class EventHandlerTest {
 
         private boolean success = false;
 
-        DummyBridge(String configDirectory, String serverURL) {
-            super(configDirectory, serverURL); // Superclass will search for event handler methods
+        DummyBridge(String configDirectory) {
+            super(configDirectory); // Superclass will search for event handler methods
 
             // Check to see if we have found the onTypingEvent successfully as an EventHandler method, and nothing else
             assertEquals(1, this.eventHandlers.size());
@@ -99,6 +99,6 @@ class EventHandlerTest {
 
     @Test
     void test() {
-        new DummyBridge(".", "http://localhost:8008");
+        new DummyBridge(".");
     }
 }

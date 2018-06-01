@@ -27,12 +27,18 @@
 package io.github.jython234.matrix.bridge;
 
 import io.github.jython234.matrix.appservice.MatrixAppservice;
+import io.github.jython234.matrix.appservice.Util;
 import io.github.jython234.matrix.appservice.event.MatrixEvent;
+import io.github.jython234.matrix.appservice.exception.KeyNotFoundException;
 import io.github.jython234.matrix.appservice.network.CreateRoomRequest;
+import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
+import io.github.jython234.matrix.bridge.configuration.BridgeConfigLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
@@ -46,17 +52,20 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public abstract class MatrixBridge {
     private MatrixAppservice appservice;
+
     private Logger logger;
+    private String configDirectory;
+    private BridgeConfig config;
+
     protected Map<Class<? extends MatrixEvent>, List<Method>> eventHandlers;
 
     /**
      * Create a new instance with the specified information.
      * @param configDirectory Location where all the bridge's configuration files should be located.
      *                        Make sure the program has permissions to read and write in the directory.
-     * @param serverURL The URL of the matrix homeserver.
      */
-    public MatrixBridge(String configDirectory, String serverURL) {
-        this(configDirectory, serverURL, null);
+    public MatrixBridge(String configDirectory) {
+        this(configDirectory, null);
     }
 
     // TODO: load serverURL from bridge configuration file
@@ -65,20 +74,52 @@ public abstract class MatrixBridge {
      * Create a new instance with the specified information.
      * @param configDirectory Location where all the bridge's configuration files should be located.
      *                        Make sure the program has permissions to read and write in the directory.
-     * @param serverURL The URL of the matrix homeserver.
      * @param eventHandler A custom Matrix Event handler to receive events directly from the appservice.
      *                     In most cases, this is not needed, so please use the other constructor instead.
      * @see MatrixBridgeEventHandler
      * @see io.github.jython234.matrix.appservice.event.EventHandler
      */
-    public MatrixBridge(String configDirectory, String serverURL, MatrixBridgeEventHandler eventHandler) {
+    public MatrixBridge(String configDirectory, MatrixBridgeEventHandler eventHandler) {
         this.logger = LoggerFactory.getLogger("MatrixBridge");
+        this.configDirectory = configDirectory;
+        this.loadConfig();
 
-        this.appservice = new MatrixAppservice(configDirectory + File.separator + "registration.yml", serverURL);
+        this.appservice = new MatrixAppservice(configDirectory + File.separator + "registration.yml", this.config.getServerURL());
         this.appservice.setEventHandler(eventHandler == null ? new MatrixBridgeEventHandler(this) : eventHandler);
 
         this.eventHandlers = new ConcurrentHashMap<>();
         this.findEventHandlers();
+    }
+
+    private void loadConfig() {
+        File configLocation = new File(this.configDirectory + File.separator + "bridge.yml");
+        this.logger.info("Loading configuration: " + configLocation.getAbsolutePath());
+
+        if(!configLocation.exists()) {
+            this.logger.warn("Configuration does not exist, copying default.");
+
+            try {
+                Util.copyResourceTo("defaultConfig.yml", configLocation);
+                this.logger.info("Default configuration copied. It is recommended you change the default values.");
+            } catch (IOException e) {
+                this.logger.error("Failed to copy default config! IOException");
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
+
+        try {
+            this.config = BridgeConfigLoader.loadFromFile(configLocation);
+            this.logger.info("Configuration loaded.");
+        } catch (FileNotFoundException e) {
+            this.logger.error("Configuration file not found! " + configLocation.getPath());
+            e.printStackTrace();
+            System.exit(1);
+        } catch (KeyNotFoundException e) {
+            this.logger.error("YAML configuration file invalid! Missing key(s)!");
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     private void findEventHandlers() {
