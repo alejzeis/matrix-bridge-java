@@ -51,6 +51,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @author jython234
  */
 public abstract class MatrixBridge {
+    public static final String SOFTWARE = "matrix-bridge-java";
+    public static final String VERSION = "1.0.0-SNAPSHOT";
+
     private MatrixAppservice appservice;
 
     private Logger logger;
@@ -67,8 +70,6 @@ public abstract class MatrixBridge {
     public MatrixBridge(String configDirectory) {
         this(configDirectory, null);
     }
-
-    // TODO: load serverURL from bridge configuration file
 
     /**
      * Create a new instance with the specified information.
@@ -149,9 +150,10 @@ public abstract class MatrixBridge {
      * Start the bridge and it's underlying appservice.
      */
     public void start() {
-        // TODO: appservice port
+        this.logger.info("Starting " + SOFTWARE + " v" + VERSION +"...");
+
         this.onStart();
-        this.appservice.run(new String[]{});
+        this.appservice.run(new String[]{"--server.port=" + this.config.getAppservicePort()});
     }
 
     /**

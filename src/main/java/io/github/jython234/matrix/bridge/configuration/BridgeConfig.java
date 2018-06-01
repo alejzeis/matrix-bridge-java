@@ -53,6 +53,11 @@ public class BridgeConfig {
     protected String publicServerURL;
 
     /**
+     * The port we want the bridge to listen on.
+     */
+    protected int appservicePort;
+
+    /**
      * Get the matrix homeserver's URL.
      * @return The matrix homeserver's URL.
      */
@@ -66,5 +71,13 @@ public class BridgeConfig {
      */
     public String getPublicServerURL() {
         return this.publicServerURL;
+    }
+
+    /**
+     * Get the appservice bind port.
+     * @return The appservice's bind port.
+     */
+    public int getAppservicePort() {
+        return this.appservicePort;
     }
 }

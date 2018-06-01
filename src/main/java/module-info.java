@@ -29,6 +29,15 @@ module io.github.jython234.matrix.bridge {
 
     requires slf4j.api;
     requires snakeyaml;
+
+    requires spring.beans;
+    requires spring.core;
+    requires spring.context;
+    requires spring.web;
+    requires spring.webmvc;
+    requires spring.boot;
+    requires spring.boot.autoconfigure;
+
     requires io.github.jython234.matrix.appservice;
 
     exports io.github.jython234.matrix.bridge;

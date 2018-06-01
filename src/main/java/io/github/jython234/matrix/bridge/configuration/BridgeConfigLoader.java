@@ -71,9 +71,14 @@ public class BridgeConfigLoader {
 
         config.serverURL = (String) map.get("serverURL");
         config.publicServerURL = (String) map.get("publicServerURL");
+        config.appservicePort = (int) map.get("appservicePort");
 
-        if(config.serverURL == null || config.publicServerURL == null) {
+        if(config.serverURL == null || config.publicServerURL == null || config.appservicePort == 0) {
             throw new KeyNotFoundException("Failed to find all required keys in the YAML file!");
+        }
+
+        if(config.appservicePort < 0) {
+            throw new RuntimeException("Appservice port must be positive!");
         }
 
         return config;
