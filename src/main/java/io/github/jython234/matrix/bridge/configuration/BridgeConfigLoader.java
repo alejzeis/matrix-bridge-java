@@ -27,6 +27,7 @@
 package io.github.jython234.matrix.bridge.configuration;
 
 import io.github.jython234.matrix.appservice.exception.KeyNotFoundException;
+import org.iq80.leveldb.CompressionType;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
@@ -79,6 +80,46 @@ public class BridgeConfigLoader {
 
         if(config.appservicePort < 0) {
             throw new RuntimeException("Appservice port must be positive!");
+        }
+
+        var dbInfoMap = (Map) map.get("db");
+        if(dbInfoMap == null) {
+            throw new KeyNotFoundException("Failed to find key: \"db\" in YAML file.");
+        }
+
+        var type = (String) dbInfoMap.get("type");
+        if(type == null) throw new KeyNotFoundException("Failed to find key \"db.type\" in YAML file.");
+
+        switch (type) {
+            case "mongodb": {
+                var info = new BridgeConfig.MongoDBInfo();
+                info.type = BridgeConfig.DbInfo.DbType.MONGO;
+                info.database = (String) dbInfoMap.get("database");
+                info.url = (String) dbInfoMap.get("url");
+
+                if (info.database == null || info.url == null) {
+                    throw new RuntimeException("Failed to find required \"db\" keys in the YAML file.");
+                }
+                break;
+            }
+            case "leveldb": {
+                var info = new BridgeConfig.LevelDBInfo();
+                info.type = BridgeConfig.DbInfo.DbType.LEVELDB;
+                info.directory = (String) dbInfoMap.get("directory");
+                info.cacheSize = (int) dbInfoMap.get("cacheSize");
+                info.compressionType = ((boolean) dbInfoMap.get("compression") ? CompressionType.SNAPPY : CompressionType.NONE);
+
+                if (info.directory == null || info.cacheSize == 0) {
+                    throw new KeyNotFoundException("Failed to find all required \"db\" keys in YAML file!");
+                }
+
+                if (info.cacheSize < 0) {
+                    throw new RuntimeException("Database cache must be positive!");
+                }
+                break;
+            }
+            default:
+                throw new RuntimeException("Database type must either be \"mongodb\" or \"leveldb\"");
         }
 
         return config;

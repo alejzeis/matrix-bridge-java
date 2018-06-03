@@ -26,6 +26,8 @@
  */
 package io.github.jython234.matrix.bridge.configuration;
 
+import org.iq80.leveldb.CompressionType;
+
 /**
  * Represents the bridge's YAML configuration file.
  * It is loaded using the {@link BridgeConfigLoader} class.
@@ -58,6 +60,70 @@ public class BridgeConfig {
     protected int appservicePort;
 
     /**
+     * Contains database information.
+     */
+    protected DbInfo dbInfo;
+
+
+    /**
+     * Represents the database information in the config file.
+     * For each type there will be an extending class with specific
+     * information pertaining to that database type.
+     *
+     * @author jython234
+     * @see LevelDBInfo
+     * @see MongoDBInfo
+     */
+    public static class DbInfo {
+        public DbType type;
+
+        /**
+         * Represents a type of Database backend to use
+         */
+        public enum DbType {
+            LEVELDB,
+            MONGO
+        }
+    }
+
+    /**
+     * Represents levelDB config information, such as the directory
+     * containing the databse.
+     *
+     * @author jython234
+     */
+    public static class LevelDBInfo extends DbInfo {
+        /**
+         * The directory where the LevelDB database is stored in.
+         */
+        public String directory;
+        /**
+         * Type of compression for the database to use.
+         */
+        public CompressionType compressionType;
+        /**
+         * Database memory cache size in megabytes.
+         */
+        public int cacheSize;
+    }
+
+    /**
+     * Represents MongoDB config information, such as the URL and port.
+     *
+     * @author jython234
+     */
+    public static class MongoDBInfo extends DbInfo {
+        /**
+         * URL of the MongoDB database.
+         */
+        public String url;
+        /**
+         * The name of the database.
+         */
+        public String database;
+    }
+
+    /**
      * Get the matrix homeserver's URL.
      * @return The matrix homeserver's URL.
      */
@@ -79,5 +145,13 @@ public class BridgeConfig {
      */
     public int getAppservicePort() {
         return this.appservicePort;
+    }
+
+    /**
+     * Get the database info.
+     * @return Database info.
+     */
+    public DbInfo getDbInfo() {
+        return this.dbInfo;
     }
 }

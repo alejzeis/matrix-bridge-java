@@ -89,6 +89,18 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.fusesource.leveldbjni</groupId>
+            <artifactId>leveldbjni-all</artifactId>
+            <version>1.8</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-async</artifactId>
+            <version>3.7.1</version>
+        </dependency>
+
         <!-- Lombok doesn't work yet, see https://github.com/rzwitserloot/lombok/issues/1572 -->
         <!--<dependency>
             <groupId>org.projectlombok</groupId>

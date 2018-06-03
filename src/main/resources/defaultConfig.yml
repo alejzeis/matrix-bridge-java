@@ -3,3 +3,13 @@ serverURL: "http://localhost:8008"
 publicServerURL: "http://localhost:8008"
 
 appservicePort: 9000
+
+db:
+  type: "leveldb" # Must be one of the following: leveldb, mongo
+  directory: "/srv/matrix-bridge/db"
+  compression: true # Must be true or false
+  cacheSize: 100 # in megabytes
+#db:
+#  type: "mongo"
+#  url: "mongo://localhost"
+#  database: "exampleDb"

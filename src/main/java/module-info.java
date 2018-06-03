@@ -30,6 +30,8 @@ module io.github.jython234.matrix.bridge {
     requires slf4j.api;
     requires snakeyaml;
 
+    requires leveldbjni.all;
+
     requires spring.beans;
     requires spring.core;
     requires spring.context;
