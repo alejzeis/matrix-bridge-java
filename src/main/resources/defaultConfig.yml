@@ -10,6 +10,6 @@ db:
   compression: true # Must be true or false
   cacheSize: 100 # in megabytes
 #db:
-#  type: "mongo"
+#  type: "mongodb"
 #  url: "mongo://localhost"
 #  database: "exampleDb"

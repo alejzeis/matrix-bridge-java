@@ -100,6 +100,8 @@ public class BridgeConfigLoader {
                 if (info.database == null || info.url == null) {
                     throw new RuntimeException("Failed to find required \"db\" keys in the YAML file.");
                 }
+
+                config.dbInfo = info;
                 break;
             }
             case "leveldb": {
@@ -116,6 +118,8 @@ public class BridgeConfigLoader {
                 if (info.cacheSize < 0) {
                     throw new RuntimeException("Database cache must be positive!");
                 }
+
+                config.dbInfo = info;
                 break;
             }
             default:

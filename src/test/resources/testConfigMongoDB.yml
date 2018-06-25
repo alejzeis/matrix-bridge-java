@@ -1,0 +1,10 @@
+# Matrix Bridge Configuration
+serverURL: "http://localhost:8008"
+publicServerURL: "https://localhost"
+
+appservicePort: 9000
+
+db:
+  type: "mongodb"
+  url: "mongo://localhost"
+  database: "matrixTestDB"
