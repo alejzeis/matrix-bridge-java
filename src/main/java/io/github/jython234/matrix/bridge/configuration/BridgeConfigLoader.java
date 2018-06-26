@@ -116,14 +116,14 @@ public class BridgeConfigLoader {
                 }
 
                 if (info.cacheSize < 0) {
-                    throw new RuntimeException("Database cache must be positive!");
+                    throw new RuntimeException("DatabaseWrapper cache must be positive!");
                 }
 
                 config.dbInfo = info;
                 break;
             }
             default:
-                throw new RuntimeException("Database type must either be \"mongodb\" or \"leveldb\"");
+                throw new RuntimeException("DatabaseWrapper type must either be \"mongodb\" or \"leveldb\"");
         }
 
         return config;

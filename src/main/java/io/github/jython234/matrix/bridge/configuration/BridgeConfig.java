@@ -78,7 +78,7 @@ public class BridgeConfig {
         public DbType type;
 
         /**
-         * Represents a type of Database backend to use
+         * Represents a type of DatabaseWrapper backend to use
          */
         public enum DbType {
             LEVELDB,
@@ -102,7 +102,7 @@ public class BridgeConfig {
          */
         public CompressionType compressionType;
         /**
-         * Database memory cache size in megabytes.
+         * DatabaseWrapper memory cache size in megabytes.
          */
         public int cacheSize;
     }
@@ -149,7 +149,7 @@ public class BridgeConfig {
 
     /**
      * Get the database info.
-     * @return Database info.
+     * @return DatabaseWrapper info.
      */
     public DbInfo getDbInfo() {
         return this.dbInfo;

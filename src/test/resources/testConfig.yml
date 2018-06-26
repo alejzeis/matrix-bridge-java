@@ -1,0 +1,11 @@
+# Matrix Bridge Configuration
+serverURL: "http://localhost:8008"
+publicServerURL: "http://localhost:8008"
+
+appservicePort: 9000
+
+db:
+  type: "leveldb"
+  directory: "matrix-bridge-java-testdb"
+  compression: true
+  cacheSize: 100

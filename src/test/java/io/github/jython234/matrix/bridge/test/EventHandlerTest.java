@@ -44,7 +44,8 @@ class EventHandlerTest {
 
     @BeforeAll
     static void init() throws IOException {
-        Util.copyResourceTo("testRegistration.yml", new File("./registration.yml"));
+        Util.copyResourceTo("testRegistration.yml", new File("registration.yml"));
+        Util.copyResourceTo("testConfig.yml", new File("bridge.yml"));
     }
 
     public static class DummyBridge extends MatrixBridge {
