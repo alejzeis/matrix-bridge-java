@@ -26,37 +26,53 @@
  */
 package io.github.jython234.matrix.bridge.db.mongo;
 
-import io.github.jython234.matrix.bridge.db.DatabaseWrapper;
+import io.github.jython234.matrix.bridge.db.BridgeDatabase;
 import io.github.jython234.matrix.bridge.db.User;
 
 import java.io.IOException;
+import java.io.Serializable;
 
 /**
  * MongoDB Database wrapper implementation.
  *
  * @author jython234
- * @see DatabaseWrapper
+ * @see BridgeDatabase
  */
-public class MongoDatabaseImpl implements DatabaseWrapper {
+public class MongoDatabaseImpl extends BridgeDatabase {
+    // TODO: Implementation
 
     @Override
     public boolean userExists(String id) {
-        // TODO: implement
         return false;
     }
 
     @Override
     public void putUser(User user) throws IOException {
-        // TODO: implement
+
     }
 
     @Override
     public void deleteUser(String id) throws IOException {
-        // TODO: implement
+
+    }
+
+    @Override
+    protected void updateUsersName(User user, String name) throws IOException {
+
+    }
+
+    @Override
+    protected void updateUsersDataField(User user, String key, Serializable value) throws IOException {
+
+    }
+
+    @Override
+    protected void deleteUsersDataField(User user, String key) throws IOException {
+
     }
 
     @Override
     public void close() throws IOException {
-        // TODO: implement
+
     }
 }

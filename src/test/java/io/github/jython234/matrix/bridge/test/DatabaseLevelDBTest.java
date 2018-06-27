@@ -27,7 +27,7 @@
 package io.github.jython234.matrix.bridge.test;
 
 import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
-import io.github.jython234.matrix.bridge.db.DatabaseWrapper;
+import io.github.jython234.matrix.bridge.db.BridgeDatabase;
 import io.github.jython234.matrix.bridge.db.User;
 import io.github.jython234.matrix.bridge.db.leveldb.LevelDBDatabaseImpl;
 import org.apache.commons.io.FileUtils;
@@ -45,11 +45,11 @@ import static org.junit.jupiter.api.Assertions.*;
 /// Contains tests for the databases.
 class DatabaseLevelDBTest {
     private static File databaseDir = new File(System.getProperty("java.io.tmpdir") + File.separator + "matrix-bridge-java-testdb");
-    private static DatabaseWrapper db;
+    private static BridgeDatabase db;
 
     // Test Constants
-    private static User testUser1 = new User(User.Type.MATRIX_USER, "@i-am-a-matrix_user:localhost");
-    private static User testUser2 = new User(User.Type.REMOTE_USER, "41235901732894127341243453456");
+    private static User testUser1;
+    private static User testUser2;
 
 
     @BeforeAll
@@ -64,6 +64,9 @@ class DatabaseLevelDBTest {
         dbInfo.compressionType = CompressionType.NONE;
 
         db = new LevelDBDatabaseImpl(dbInfo);
+
+        testUser1 = new User(db, User.Type.MATRIX_USER, "@i-am-a-matrix_user:localhost");
+        testUser2 = new User(db, User.Type.REMOTE_USER, "41235901732894127341243453456");
     }
 
     @Test

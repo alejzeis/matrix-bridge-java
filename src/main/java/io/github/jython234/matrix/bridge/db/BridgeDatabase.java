@@ -28,13 +28,14 @@ package io.github.jython234.matrix.bridge.db;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.Serializable;
 
 /**
  * Interface which represents a supported database (Mongo or leveldb)
  *
  * @author jython234
  */
-public interface DatabaseWrapper extends Closeable {
+public abstract class BridgeDatabase implements Closeable {
 
     /**
      * Checks if a user exists based on their ID. This ID is the same ID used in a bot matrix
@@ -44,7 +45,7 @@ public interface DatabaseWrapper extends Closeable {
      * @param id The user's ID.
      * @return If the user exists or not.
      */
-    boolean userExists(String id);
+    public abstract boolean userExists(String id);
 
     /**
      * Checks if a user exists based on their ID.
@@ -52,7 +53,7 @@ public interface DatabaseWrapper extends Closeable {
      * @return If the user exists or not.
      * @see #userExists(String)
      */
-    default boolean userExists(User user) {
+    public boolean userExists(User user) {
         return userExists(user.id);
     }
 
@@ -62,21 +63,51 @@ public interface DatabaseWrapper extends Closeable {
      * @param user The User to be inserted.
      * @throws IOException If there is an error while attempting to insert the user into the database.
      */
-    void putUser(User user) throws IOException;
+    public abstract void putUser(User user) throws IOException;
 
     /**
      * Deletes a user from the database, based on their id.
      * @param id The ID of the user to be deleted.
      * @throws IOException If there is an error while deleting the user.
      */
-    void deleteUser(String id) throws IOException;
+    public abstract void deleteUser(String id) throws IOException;
 
     /**
      * Deletes a user from the database, based on their {@link User#id}.
      * @param user The {@link User} to be deleted.
      * @throws IOException If there is an error while deleting the user.
      */
-    default void deleteUser(User user) throws IOException {
+    public void deleteUser(User user) throws IOException {
         deleteUser(user.id);
     }
+
+    /**
+     * Utility method used by {@link User#updateName(String)} to update the user's name.
+     * @param user The user to perform the operation on.
+     * @param name The new name of the user.
+     * @throws IOException If there is an error while updating the name.
+     * @see User#updateName(String)
+     */
+    protected abstract void updateUsersName(User user, String name) throws IOException;
+
+    /**
+     * Updates a key,value pair of the user's additional data. Used by
+     * {@link User#updateDataField(String, Serializable)}.
+     * @param user The user to perform the operation on.
+     * @param key The key of the data field.
+     * @param value The value of the data field.
+     * @throws IOException If there is an error while updating the data.
+     * @see User#updateDataField(String, Serializable)
+     */
+    protected abstract void updateUsersDataField(User user, String key, Serializable value) throws IOException;
+
+    /**
+     * Deletes a key,value pair of the user's additional data. Used by
+     * {@link User#deleteDataField(String)}.
+     * @param user The user to perform the operation on.
+     * @param key The key of the data field.
+     * @throws IOException If there is an error while deleting the key.
+     * @see User#deleteDataField(String)
+     */
+    protected abstract void deleteUsersDataField(User user, String key) throws IOException;
 }

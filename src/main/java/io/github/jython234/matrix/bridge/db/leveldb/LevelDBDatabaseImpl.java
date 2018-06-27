@@ -28,7 +28,7 @@ package io.github.jython234.matrix.bridge.db.leveldb;
 
 import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.db.DatabaseException;
-import io.github.jython234.matrix.bridge.db.DatabaseWrapper;
+import io.github.jython234.matrix.bridge.db.BridgeDatabase;
 import io.github.jython234.matrix.bridge.db.User;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.Options;
@@ -37,14 +37,15 @@ import static org.fusesource.leveldbjni.JniDBFactory.factory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 
 /**
- * LevelDB DatabaseWrapper implementation.
+ * LevelDB BridgeDatabase implementation.
  *
  * @author jython234
- * @see DatabaseWrapper
+ * @see BridgeDatabase
  */
-public class LevelDBDatabaseImpl implements DatabaseWrapper {
+public class LevelDBDatabaseImpl extends BridgeDatabase {
     private DB database;
 
     public LevelDBDatabaseImpl(BridgeConfig.LevelDBInfo levelDbConfigInfo) {
@@ -73,6 +74,21 @@ public class LevelDBDatabaseImpl implements DatabaseWrapper {
     @Override
     public void deleteUser(String id) throws IOException {
         this.database.delete(ByteUtils.getUserKeyValue(id));
+    }
+
+    @Override
+    protected void updateUsersName(User user, String name) throws IOException {
+        this.putUser(user); // LevelDB doesn't support any specific updating so we'll just overwrite the entry.
+    }
+
+    @Override
+    protected void updateUsersDataField(User user, String key, Serializable value) throws IOException {
+        this.putUser(user); // LevelDB doesn't support any specific updating so we'll just overwrite the entry.
+    }
+
+    @Override
+    protected void deleteUsersDataField(User user, String key) throws IOException {
+        this.putUser(user); // LevelDB doesn't support any specific updating so we'll just overwrite the entry.
     }
 
     @Override
