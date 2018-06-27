@@ -26,6 +26,9 @@
  */
 package io.github.jython234.matrix.bridge.db.leveldb;
 
+import io.github.jython234.matrix.bridge.db.User;
+
+import java.io.*;
 import java.nio.ByteBuffer;
 
 /**
@@ -35,17 +38,41 @@ import java.nio.ByteBuffer;
  */
 public class ByteUtils {
     /**
+     * Database storage version. If it doesn't match our current one the database
+     * will need to be upgraded.
+     */
+    public static final int DB_VERSION = 1;
+
+    /**
      * Get the LevelDB key for a user, provided their ID.
-     * @param id The User's ID.
+     * @param id The RemoteUser's ID.
      * @return The LevelDB Key.
      */
     public static byte[] getUserKeyValue(String id) {
-        byte[] bytes = id.getBytes();
-        ByteBuffer bb = ByteBuffer.allocate(bytes.length + 2);
+        var bytes = id.getBytes();
+        var bb = ByteBuffer.allocate(bytes.length + 2);
 
         bb.putShort((short) bytes.length);
         bb.put(bytes);
 
         return bb.array();
+    }
+
+    public static byte[] serializeUser(User user) throws IOException {
+        var baos = new ByteArrayOutputStream();
+        var objos = new ObjectOutputStream(baos);
+        objos.writeObject(user);
+        return baos.toByteArray();
+    }
+
+    public static User deserializeUser(byte[] bytes) throws IOException {
+        var bais = new ByteArrayInputStream(bytes);
+        var objis = new ObjectInputStream(bais);
+
+        try {
+            return (User) objis.readObject();
+        } catch (ClassNotFoundException | ClassCastException e) {
+            throw new IOException(e);
+        }
     }
 }

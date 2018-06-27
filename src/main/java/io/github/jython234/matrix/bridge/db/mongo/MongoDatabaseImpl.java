@@ -27,6 +27,7 @@
 package io.github.jython234.matrix.bridge.db.mongo;
 
 import io.github.jython234.matrix.bridge.db.DatabaseWrapper;
+import io.github.jython234.matrix.bridge.db.User;
 
 import java.io.IOException;
 
@@ -42,6 +43,16 @@ public class MongoDatabaseImpl implements DatabaseWrapper {
     public boolean userExists(String id) {
         // TODO: implement
         return false;
+    }
+
+    @Override
+    public void putUser(User user) throws IOException {
+        // TODO: implement
+    }
+
+    @Override
+    public void deleteUser(String id) throws IOException {
+        // TODO: implement
     }
 
     @Override

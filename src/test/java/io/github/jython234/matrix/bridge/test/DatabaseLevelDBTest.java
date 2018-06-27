@@ -28,22 +28,38 @@ package io.github.jython234.matrix.bridge.test;
 
 import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.db.DatabaseWrapper;
+import io.github.jython234.matrix.bridge.db.User;
 import io.github.jython234.matrix.bridge.db.leveldb.LevelDBDatabaseImpl;
+import org.apache.commons.io.FileUtils;
 import org.iq80.leveldb.CompressionType;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /// Contains tests for the databases.
-public class DatabaseTestLevelDB {
+class DatabaseLevelDBTest {
+    private static File databaseDir = new File(System.getProperty("java.io.tmpdir") + File.separator + "matrix-bridge-java-testdb");
     private static DatabaseWrapper db;
 
+    // Test Constants
+    private static User testUser1 = new User(User.Type.MATRIX_USER, "@i-am-a-matrix_user:localhost");
+    private static User testUser2 = new User(User.Type.REMOTE_USER, "41235901732894127341243453456");
+
+
     @BeforeAll
-    static void init() {
+    static void init() throws IOException {
+        if(databaseDir.exists() && databaseDir.isDirectory()) {
+            FileUtils.deleteDirectory(databaseDir); // Need to use commons-io as the directory isn't empty
+        }
+
         var dbInfo = new BridgeConfig.LevelDBInfo();
-        dbInfo.directory = System.getProperty("java.io.tmpdir") + File.separator + "matrix-bridge-java-testdb";
+        dbInfo.directory = databaseDir.getAbsolutePath();
         dbInfo.cacheSize = 128;
         dbInfo.compressionType = CompressionType.NONE;
 
@@ -51,8 +67,29 @@ public class DatabaseTestLevelDB {
     }
 
     @Test
+    @DisplayName("Tests if putting users in the database and deleting them works correctly")
+    void testCreationDeletion() throws IOException {
+        db.putUser(testUser1);
+        db.putUser(testUser2);
+
+        assertTrue(db.userExists(testUser1));
+        assertTrue(db.userExists(testUser2));
+
+        db.deleteUser(testUser1);
+        db.deleteUser(testUser2);
+
+        assertFalse(db.userExists(testUser1));
+        assertFalse(db.userExists(testUser2));
+    }
+
+    @Test
     @DisplayName("Checks if a user exists or not in the database")
     void testUserExists() {
         // TODO
+    }
+
+    @AfterAll
+    static void deinit() throws IOException {
+        FileUtils.deleteDirectory(databaseDir); // Need to use commons-io as the directory isn't empty
     }
 }

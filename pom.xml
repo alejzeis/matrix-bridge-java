@@ -101,13 +101,13 @@
             <version>3.7.1</version>
         </dependency>
 
-        <!-- Lombok doesn't work yet, see https://github.com/rzwitserloot/lombok/issues/1572 -->
-        <!--<dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.16.22</version>
+            <version>1.18.0</version>
             <scope>provided</scope>
-        </dependency>-->
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>

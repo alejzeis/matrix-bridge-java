@@ -29,6 +29,7 @@ package io.github.jython234.matrix.bridge.db.leveldb;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.db.DatabaseException;
 import io.github.jython234.matrix.bridge.db.DatabaseWrapper;
+import io.github.jython234.matrix.bridge.db.User;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.Options;
 
@@ -47,7 +48,7 @@ public class LevelDBDatabaseImpl implements DatabaseWrapper {
     private DB database;
 
     public LevelDBDatabaseImpl(BridgeConfig.LevelDBInfo levelDbConfigInfo) {
-        Options options = new Options().createIfMissing(true)
+        var options = new Options().createIfMissing(true)
                 .cacheSize(levelDbConfigInfo.cacheSize)
                 .compressionType(levelDbConfigInfo.compressionType);
 
@@ -61,6 +62,17 @@ public class LevelDBDatabaseImpl implements DatabaseWrapper {
     public boolean userExists(String id) {
         // If the get call returns null then that user doesn't exist in the database.
         return this.database.get(ByteUtils.getUserKeyValue(id)) != null;
+    }
+
+    @Override
+    public void putUser(User user) throws IOException {
+        byte[] data = ByteUtils.serializeUser(user);
+        this.database.put(ByteUtils.getUserKeyValue(user.id), data);
+    }
+
+    @Override
+    public void deleteUser(String id) throws IOException {
+        this.database.delete(ByteUtils.getUserKeyValue(id));
     }
 
     @Override
