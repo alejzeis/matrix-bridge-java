@@ -26,6 +26,8 @@
  */
 package io.github.jython234.matrix.bridge.db.mongo;
 
+import io.github.jython234.matrix.bridge.MatrixBridge;
+import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.db.BridgeDatabase;
 import io.github.jython234.matrix.bridge.db.User;
 
@@ -39,6 +41,10 @@ import java.io.Serializable;
  * @see BridgeDatabase
  */
 public class MongoDatabaseImpl extends BridgeDatabase {
+
+    public MongoDatabaseImpl(MatrixBridge bridge, BridgeConfig.MongoDBInfo dbInfo) {
+        super(bridge);
+    }
     // TODO: Implementation
 
     @Override

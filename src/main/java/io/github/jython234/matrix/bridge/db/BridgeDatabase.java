@@ -26,6 +26,10 @@
  */
 package io.github.jython234.matrix.bridge.db;
 
+import io.github.jython234.matrix.bridge.MatrixBridge;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.Serializable;
@@ -36,6 +40,13 @@ import java.io.Serializable;
  * @author jython234
  */
 public abstract class BridgeDatabase implements Closeable {
+    protected final MatrixBridge bridge;
+    protected final Logger logger;
+
+    public BridgeDatabase(MatrixBridge bridge) {
+        this.bridge = bridge;
+        this.logger = LoggerFactory.getLogger("MatrixBridge-Database");
+    }
 
     /**
      * Checks if a user exists based on their ID. This ID is the same ID used in a bot matrix

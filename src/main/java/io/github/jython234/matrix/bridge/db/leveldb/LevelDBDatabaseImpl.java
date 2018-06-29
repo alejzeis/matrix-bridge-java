@@ -26,6 +26,7 @@
  */
 package io.github.jython234.matrix.bridge.db.leveldb;
 
+import io.github.jython234.matrix.bridge.MatrixBridge;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.db.DatabaseException;
 import io.github.jython234.matrix.bridge.db.BridgeDatabase;
@@ -48,11 +49,13 @@ import java.io.Serializable;
 public class LevelDBDatabaseImpl extends BridgeDatabase {
     private DB database;
 
-    public LevelDBDatabaseImpl(BridgeConfig.LevelDBInfo levelDbConfigInfo) {
+    public LevelDBDatabaseImpl(MatrixBridge bridge, BridgeConfig.LevelDBInfo levelDbConfigInfo) {
+        super(bridge);
         var options = new Options().createIfMissing(true)
                 .cacheSize(levelDbConfigInfo.cacheSize)
                 .compressionType(levelDbConfigInfo.compressionType);
 
+        this.logger.info("Opening LevelDB database with " + levelDbConfigInfo.cacheSize + "MB cache size and Compression: " + levelDbConfigInfo.compressionType.name());
         try {
             this.database = factory.open(new File(levelDbConfigInfo.directory), options);
         } catch (IOException e) {

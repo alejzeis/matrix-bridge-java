@@ -64,7 +64,7 @@ class DatabaseLevelDBTest {
         dbInfo.cacheSize = 128;
         dbInfo.compressionType = CompressionType.NONE;
 
-        db = new LevelDBDatabaseImpl(dbInfo);
+        db = new LevelDBDatabaseImpl(null, dbInfo);
 
         testUser1 = new User(db, User.Type.MATRIX_USER, "@i-am-a-matrix_user:localhost");
         testUser2 = new User(db, User.Type.REMOTE_USER, "41235901732894127341243453456");

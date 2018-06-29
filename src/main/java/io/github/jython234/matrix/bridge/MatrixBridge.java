@@ -33,6 +33,9 @@ import io.github.jython234.matrix.appservice.exception.KeyNotFoundException;
 import io.github.jython234.matrix.appservice.network.CreateRoomRequest;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfigLoader;
+import io.github.jython234.matrix.bridge.db.BridgeDatabase;
+import io.github.jython234.matrix.bridge.db.leveldb.LevelDBDatabaseImpl;
+import io.github.jython234.matrix.bridge.db.mongo.MongoDatabaseImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +62,8 @@ public abstract class MatrixBridge {
     private Logger logger;
     private String configDirectory;
     private BridgeConfig config;
+
+    private BridgeDatabase database;
 
     protected Map<Class<? extends MatrixEvent>, List<Method>> eventHandlers;
 
@@ -90,6 +95,8 @@ public abstract class MatrixBridge {
 
         this.eventHandlers = new ConcurrentHashMap<>();
         this.findEventHandlers();
+
+        this.setupDatabase();
     }
 
     private void loadConfig() {
@@ -146,6 +153,17 @@ public abstract class MatrixBridge {
         }
     }
 
+    private void setupDatabase() {
+        switch (this.config.getDbInfo().type) {
+            case MONGO:
+                this.database = new MongoDatabaseImpl(this, (BridgeConfig.MongoDBInfo) this.config.getDbInfo());
+                break;
+            case LEVELDB:
+                this.database = new LevelDBDatabaseImpl(this, (BridgeConfig.LevelDBInfo) this.config.getDbInfo());
+                break;
+        }
+    }
+
     /**
      * Start the bridge and it's underlying appservice.
      */
@@ -195,5 +213,9 @@ public abstract class MatrixBridge {
 
     public Logger getLogger() {
         return logger;
+    }
+
+    public BridgeDatabase getDatabase() {
+        return this.database;
     }
 }
