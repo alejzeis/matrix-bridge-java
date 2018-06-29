@@ -1,8 +1,5 @@
 package io.github.jython234.matrix.bridge.db;
 
-import lombok.Getter;
-import lombok.NonNull;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
@@ -24,31 +21,11 @@ public class User implements Serializable {
      */
     public final Type type;
 
-    @Getter private transient final BridgeDatabase database;
+    protected transient final BridgeDatabase database;
 
-    /**
-     * The user's name (or displayname). This should be the value that will be displayed when
-     * messages are sent.
-     */
-    @Getter private String name;
+    private String name = "";
 
-    /**
-     * <strong>NOTICE: Modifying this directly is not recommended!</strong> Please use the helper method
-     * {@link #updateDataField(String, Serializable)} instead.
-     *
-     * If you do end up modifying this directly, you'll have to update the whole user in the database by
-     * calling {@link BridgeDatabase#putUser(User)}, even if it already exists as it will overwrite it, inserting your new
-     * changes. It's recommended to use the helper method instead.
-     *
-     * Any additional data to be stored in the database. This is ususally used by the actual
-     * bridge implementation for specific data referring to the application being bridged.
-     *
-     * For example, storing profile picture information.
-     *
-     * @see #updateDataField(String, Serializable)
-     * @see BridgeDatabase#putUser(User)
-     */
-    @Getter private Map<String, Serializable> additionalData;
+    private Map<String, Serializable> additionalData;
 
     public User(BridgeDatabase db, Type type, String id) {
         this.database = db;
@@ -57,12 +34,20 @@ public class User implements Serializable {
         this.additionalData = new ConcurrentHashMap<>();
     }
 
+    public User(BridgeDatabase db, Type type, String id, String name, Map<String, Serializable> data) {
+        this.database =db;
+        this.type = type;
+        this.id = id;
+        this.name = name;
+        this.additionalData = data;
+    }
+
     /**
      * Updates this user's name to a new name.
      * @param newName The user's new name.
      * @throws DatabaseException If there is an error while updating the name. This is a {@link RuntimeException} based exception.
      */
-    public synchronized void updateName(@NonNull String newName) {
+    public synchronized void updateName(String newName) {
         String oldName = this.name;
 
         this.name = newName;
@@ -110,6 +95,37 @@ public class User implements Serializable {
     }
 
     /**
+     * Get the user's name, or display name.
+     * This is the name that is displayed when messages are sent.
+     * @return The name of the user.
+     */
+    public synchronized String getName() {
+        return this.name;
+    }
+
+    /**
+     * <strong>NOTICE: Modifying this directly is not recommended!</strong> Please use the helper method
+     * {@link #updateDataField(String, Serializable)} instead.
+     *
+     * If you do end up modifying this directly, you'll have to update the whole user in the database by
+     * calling {@link BridgeDatabase#putUser(User)}, even if it already exists as it will overwrite it, inserting your new
+     * changes. It's recommended to use the helper method instead.
+     *
+     *
+     * Any additional data to be stored in the database. This is ususally used by the actual
+     * bridge implementation for specific data referring to the application being bridged.
+     *
+     * For example, storing profile picture information.
+     *
+     * @see #updateDataField(String, Serializable)
+     * @see BridgeDatabase#putUser(User)
+     * @return The additional data map for this user.
+     */
+    public Map<String, Serializable> getAdditionalData() {
+        return this.additionalData;
+    }
+
+    /**
      * Represents the type of a {@link User}. It can either be a Matrix User, in which
      * the user is on Matrix and is being bridged to the remote application, or a Remote User, in which
      * the user is on the remote application and is being bridged to Matrix.
@@ -133,6 +149,10 @@ public class User implements Serializable {
 
         Type(int integerValue) {
             this.integerValue = integerValue;
+        }
+
+        public int getIntegerValue() {
+            return integerValue;
         }
     }
 }

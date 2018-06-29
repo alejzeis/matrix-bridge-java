@@ -101,12 +101,13 @@
             <version>3.7.1</version>
         </dependency>
 
+        <!-- Lombok not working on Java 10
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.0</version>
             <scope>provided</scope>
-        </dependency>
+        </dependency>-->
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>

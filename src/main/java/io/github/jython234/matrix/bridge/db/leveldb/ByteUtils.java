@@ -26,10 +26,12 @@
  */
 package io.github.jython234.matrix.bridge.db.leveldb;
 
+import io.github.jython234.matrix.bridge.db.BridgeDatabase;
 import io.github.jython234.matrix.bridge.db.User;
 
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.Map;
 
 /**
  * Utilities for getting LevelDB keys and values in bytes.
@@ -61,16 +63,27 @@ public class ByteUtils {
     public static byte[] serializeUser(User user) throws IOException {
         var baos = new ByteArrayOutputStream();
         var objos = new ObjectOutputStream(baos);
-        objos.writeObject(user);
+
+        objos.writeByte(user.type.getIntegerValue());
+        objos.writeUTF(user.id);
+        objos.writeUTF(user.getName());
+        objos.writeObject(user.getAdditionalData());
+
         return baos.toByteArray();
     }
 
-    public static User deserializeUser(byte[] bytes) throws IOException {
+    @SuppressWarnings("unchecked")
+    public static User deserializeUser(byte[] bytes, BridgeDatabase db) throws IOException {
         var bais = new ByteArrayInputStream(bytes);
         var objis = new ObjectInputStream(bais);
 
+        var type = objis.readByte() == User.Type.MATRIX_USER.getIntegerValue() ? User.Type.MATRIX_USER : User.Type.REMOTE_USER;
+        var id = objis.readUTF();
+        var name = objis.readUTF();
+
         try {
-            return (User) objis.readObject();
+            var data = (Map) objis.readObject();
+            return new User(db, type, id, name, data);
         } catch (ClassNotFoundException | ClassCastException e) {
             throw new IOException(e);
         }

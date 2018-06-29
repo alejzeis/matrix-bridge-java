@@ -50,6 +50,7 @@ class DatabaseLevelDBTest {
     // Test Constants
     private static User testUser1;
     private static User testUser2;
+    private static User testUser3;
 
 
     @BeforeAll
@@ -67,6 +68,7 @@ class DatabaseLevelDBTest {
 
         testUser1 = new User(db, User.Type.MATRIX_USER, "@i-am-a-matrix_user:localhost");
         testUser2 = new User(db, User.Type.REMOTE_USER, "41235901732894127341243453456");
+        testUser3 = new User(db, User.Type.MATRIX_USER, "@another-matrix-user:localhost");
     }
 
     @Test
@@ -86,13 +88,41 @@ class DatabaseLevelDBTest {
     }
 
     @Test
-    @DisplayName("Checks if a user exists or not in the database")
-    void testUserExists() {
-        // TODO
+    @DisplayName("Checks if a user can successfully be retrieved from the database and modified")
+    void testUserGetAndModify() throws IOException {
+        testUser3.updateName("A Name");
+        testUser3.updateDataField("testKey", "testValue");
+
+        db.putUser(testUser3);
+
+        var user = db.getUser(testUser3.id);
+
+        assertUserCommon(testUser3, user);
+        assertEquals(testUser3.getAdditionalData().get("testKey"), user.getAdditionalData().get("testKey"));
+
+        testUser3.updateName("a New Name");
+        testUser3.updateDataField("testKey", "aNewValue");
+        testUser3.updateDataField("aNewKey", "aValue");
+
+        // Get new data
+        user = db.getUser(testUser3.id);
+
+        assertUserCommon(testUser3, user);
+        assertEquals(testUser3.getAdditionalData().get("testKey"), user.getAdditionalData().get("testKey"));
+        assertEquals(testUser3.getAdditionalData().get("aNewKey"), user.getAdditionalData().get("aNewKey"));
+    }
+
+    private void assertUserCommon(User user1, User user2) {
+        assertEquals(user1.type, user2.type);
+        assertEquals(user1.id, user2.id);
+        assertEquals(user1.getName(), user2.getName());
+
+        assertEquals(user1.getAdditionalData().size(), user2.getAdditionalData().size());
     }
 
     @AfterAll
     static void deinit() throws IOException {
+        db.close();
         FileUtils.deleteDirectory(databaseDir); // Need to use commons-io as the directory isn't empty
     }
 }

@@ -67,12 +67,18 @@ public class LevelDBDatabaseImpl extends BridgeDatabase {
 
     @Override
     public void putUser(User user) throws IOException {
-        byte[] data = ByteUtils.serializeUser(user);
+        var data = ByteUtils.serializeUser(user);
         this.database.put(ByteUtils.getUserKeyValue(user.id), data);
     }
 
     @Override
-    public void deleteUser(String id) throws IOException {
+    public User getUser(String id) throws IOException {
+        var data = this.database.get(ByteUtils.getUserKeyValue(id));
+        return data != null ? ByteUtils.deserializeUser(data, this) : null;
+    }
+
+    @Override
+    public void deleteUser(String id) {
         this.database.delete(ByteUtils.getUserKeyValue(id));
     }
 

@@ -27,8 +27,6 @@
 module io.github.jython234.matrix.bridge {
     requires java.base;
 
-    requires lombok;
-
     requires slf4j.api;
     requires snakeyaml;
 

@@ -52,6 +52,11 @@ public class MongoDatabaseImpl extends BridgeDatabase {
     }
 
     @Override
+    public User getUser(String id) throws IOException {
+        return null;
+    }
+
+    @Override
     public void deleteUser(String id) throws IOException {
 
     }

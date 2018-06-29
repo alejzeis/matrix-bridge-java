@@ -66,6 +66,14 @@ public abstract class BridgeDatabase implements Closeable {
     public abstract void putUser(User user) throws IOException;
 
     /**
+     * Get a user from the database, returning <code>null</code> if it doesn't exist.
+     * @param id The ID of the user.
+     * @return The User if found, null if not.
+     * @throws IOException If there was an error while attempting to get the user from the database.
+     */
+    public abstract User getUser(String id) throws IOException;
+
+    /**
      * Deletes a user from the database, based on their id.
      * @param id The ID of the user to be deleted.
      * @throws IOException If there is an error while deleting the user.
