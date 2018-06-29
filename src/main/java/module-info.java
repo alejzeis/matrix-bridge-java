@@ -26,11 +26,15 @@
  */
 module io.github.jython234.matrix.bridge {
     requires java.base;
+    requires jdk.incubator.httpclient;
 
     requires slf4j.api;
     requires snakeyaml;
 
     requires leveldbjni.all;
+
+    requires json.simple;
+    requires gson;
 
     requires spring.beans;
     requires spring.core;

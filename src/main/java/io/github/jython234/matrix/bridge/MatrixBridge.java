@@ -212,7 +212,15 @@ public abstract class MatrixBridge {
     }
 
     public Logger getLogger() {
-        return logger;
+        return this.logger;
+    }
+
+    public BridgeConfig getConfig() {
+        return this.config;
+    }
+
+    public MatrixAppservice getAppservice() {
+        return this.appservice;
     }
 
     public BridgeDatabase getDatabase() {
