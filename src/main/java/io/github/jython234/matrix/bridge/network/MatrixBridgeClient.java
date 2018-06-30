@@ -59,12 +59,19 @@ public class MatrixBridgeClient {
     private HttpClient httpClient;
 
     private Map<String, BridgeUserClient> bridgeUsers = new ConcurrentHashMap<>(); // Map of 'bot created' users by the appservice
+    private BridgeUserClient bridgeClient;
 
     public MatrixBridgeClient(MatrixBridge bridge) {
         this.logger = LoggerFactory.getLogger("MatrixBridge-Client");
         this.bridge = bridge;
 
         this.httpClient = HttpClient.newBuilder().executor(bridge.getAppservice().threadPoolTaskExecutor).build();
+
+        bridgeClient = new BridgeUserClient(this, this.bridge.getAppservice().getRegistration().getSenderLocalpart());
+    }
+
+    public BridgeUserClient getBridgeClient() {
+        return this.bridgeClient;
     }
 
     public BridgeUserClient getClientForUser(String localpart) {
@@ -112,8 +119,10 @@ public class MatrixBridgeClient {
             sb.append("?access_token=");
             sb.append(this.bridge.getAppservice().getRegistration().getAsToken());
 
-            sb.append("&user_id=");
-            sb.append(userId);
+            if(!userId.equals(this.bridge.getAppservice().getRegistration().getSenderLocalpart())) {
+                sb.append("&user_id=");
+                sb.append(userId);
+            }
 
             return new URI(sb.toString());
         } catch (URISyntaxException e) {

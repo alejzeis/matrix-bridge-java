@@ -86,7 +86,7 @@ public class BridgeUserClient {
             txnId = nextTransactionId++;
         }
 
-        var uri = this.client.getURI("rooms/" + roomId + "/send/" + message.content.msgtype + "/" + txnId, true);
+        var uri = this.client.getURI("rooms/" + roomId + "/send/" + message.content.msgtype + "/" + txnId, localpart);
         var json = MatrixBridgeClient.gson.toJson(message.content);
         return this.client.sendRawPUTRequest(uri, json);
     }
