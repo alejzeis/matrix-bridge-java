@@ -49,4 +49,6 @@ module io.github.jython234.matrix.bridge {
     exports io.github.jython234.matrix.bridge;
     exports io.github.jython234.matrix.bridge.configuration;
     exports io.github.jython234.matrix.bridge.db;
+    exports io.github.jython234.matrix.bridge.network;
+    exports io.github.jython234.matrix.bridge.network.registration;
 }
