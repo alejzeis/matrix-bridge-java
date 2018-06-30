@@ -36,7 +36,6 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
-import java.net.URI;
 
 /**
  * A helper class that allows the bridge to control a "bot user"
@@ -46,18 +45,18 @@ import java.net.URI;
  * @author jython234
  */
 public class BridgeUserClient {
-    private static Integer nextTransactionId = 0;
+    private static Long nextTransactionId = 0L;
 
     private MatrixBridgeClient client;
-    private String localpart;
+    private String userId;
 
-    public BridgeUserClient(MatrixBridgeClient client, String localpart) {
+    public BridgeUserClient(MatrixBridgeClient client, String userId) {
         this.client = client;
-        this.localpart = localpart;
+        this.userId = userId;
     }
 
     protected void register() throws IOException, InterruptedException {
-        var json = MatrixBridgeClient.gson.toJson(new UserRegisterRequest(this.localpart));
+        var json = MatrixBridgeClient.gson.toJson(new UserRegisterRequest(this.userId));
 
         var response = this.client.sendRawPOSTRequest(this.client.getURI("register", true), json);
         switch (response.statusCode()) {
@@ -81,18 +80,18 @@ public class BridgeUserClient {
     }
 
     public HttpResponse sendMessage(String roomId, MessageMatrixEvent message) throws IOException, InterruptedException {
-        int txnId;
+        long txnId;
         synchronized (nextTransactionId) {
             txnId = nextTransactionId++;
         }
 
-        var uri = this.client.getURI("rooms/" + roomId + "/send/" + message.content.msgtype + "/" + txnId, localpart);
+        var uri = this.client.getURI("rooms/" + roomId + "/send/" + message.content.msgtype + "/" + txnId, this.userId);
         var json = MatrixBridgeClient.gson.toJson(message.content);
         return this.client.sendRawPUTRequest(uri, json);
     }
 
     public HttpResponse joinRoom(String roomIdOrAlias) throws IOException, InterruptedException {
-        var uri = this.client.getURI("join/" + roomIdOrAlias, this.localpart);
+        var uri = this.client.getURI("join/" + roomIdOrAlias, this.userId);
         return this.client.sendRawPOSTRequest(uri);
     }
 }

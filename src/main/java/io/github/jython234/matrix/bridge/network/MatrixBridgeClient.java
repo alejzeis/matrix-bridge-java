@@ -74,19 +74,19 @@ public class MatrixBridgeClient {
         return this.bridgeClient;
     }
 
-    public BridgeUserClient getClientForUser(String localpart) {
-        if(localpart.contains("@") || localpart.contains(":")) throw new IllegalArgumentException("Invalid localpart! Must not be the full address!");
+    public BridgeUserClient getClientForUser(String userId) {
+        if(!(userId.contains("@") && userId.contains(":"))) throw new IllegalArgumentException("Invalid userID! Correct format: \"@user:domain\"");
 
-        if(!bridgeUsers.containsKey(localpart)) {
-            var client = new BridgeUserClient(this, localpart);
+        if(!bridgeUsers.containsKey(userId)) {
+            var client = new BridgeUserClient(this, userId);
             try {
                 client.register();
-                this.bridgeUsers.put(localpart, client);
+                this.bridgeUsers.put(userId, client);
                 return client;
             } catch (IOException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
-        } else return bridgeUsers.get(localpart);
+        } else return bridgeUsers.get(userId);
     }
 
     public URI getURI(String matrixPath, boolean appendAccessToken) {
@@ -119,10 +119,10 @@ public class MatrixBridgeClient {
             sb.append("?access_token=");
             sb.append(this.bridge.getAppservice().getRegistration().getAsToken());
 
-            if(!userId.equals(this.bridge.getAppservice().getRegistration().getSenderLocalpart())) {
+            //if(!userId.equals(this.bridge.getAppservice().getRegistration().getSenderLocalpart())) {
                 sb.append("&user_id=");
                 sb.append(userId);
-            }
+            //}
 
             return new URI(sb.toString());
         } catch (URISyntaxException e) {
