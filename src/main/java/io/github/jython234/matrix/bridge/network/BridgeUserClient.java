@@ -28,6 +28,8 @@ package io.github.jython234.matrix.bridge.network;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import io.github.jython234.matrix.appservice.Util;
+import io.github.jython234.matrix.appservice.event.room.message.MessageContent;
 import io.github.jython234.matrix.appservice.event.room.message.MessageMatrixEvent;
 import io.github.jython234.matrix.bridge.network.registration.UserRegisterRequest;
 import jdk.incubator.http.HttpResponse;
@@ -50,13 +52,13 @@ public class BridgeUserClient {
     private MatrixBridgeClient client;
     private String userId;
 
-    public BridgeUserClient(MatrixBridgeClient client, String userId) {
+    protected BridgeUserClient(MatrixBridgeClient client, String userId) {
         this.client = client;
         this.userId = userId;
     }
 
     protected void register() throws IOException, InterruptedException {
-        var json = MatrixBridgeClient.gson.toJson(new UserRegisterRequest(this.userId));
+        var json = MatrixBridgeClient.gson.toJson(new UserRegisterRequest(Util.getLocalpart(this.userId)));
 
         var response = this.client.sendRawPOSTRequest(this.client.getURI("register", true), json);
         switch (response.statusCode()) {
@@ -68,6 +70,8 @@ public class BridgeUserClient {
                     var obj = (JSONObject) parser.parse(response.body());
                     if(obj.get("errcode").equals("M_USER_IN_USE")) {
                         return; // Silent ignore, as the user is already registered
+                    } else if(obj.get("errcode").equals("M_EXCLUSIVE")) {
+                        throw new RuntimeException("Attempting to register a user outside of this appservice's exclusive zone!");
                     } else {
                         throw new RuntimeException("Unknown error from server while registering BridgeUser: " + obj.get("errcode"));
                     }
@@ -79,17 +83,34 @@ public class BridgeUserClient {
         }
     }
 
-    public HttpResponse sendMessage(String roomId, MessageMatrixEvent message) throws IOException, InterruptedException {
+    /**
+     * Sends a message to a Matrix room. The user must be joined to the room first!
+     * @param roomId The matrix room ID of the room to send the message to.
+     * @param content The Message content.
+     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
+     * @throws IOException If there was an error while performing IO on the network request.
+     * @throws InterruptedException If the request was interrupted
+     * @see #joinRoom(String)
+     */
+    public HttpResponse sendMessage(String roomId, MessageContent content) throws IOException, InterruptedException {
         long txnId;
         synchronized (nextTransactionId) {
             txnId = nextTransactionId++;
         }
 
-        var uri = this.client.getURI("rooms/" + roomId + "/send/" + message.content.msgtype + "/" + txnId, this.userId);
-        var json = MatrixBridgeClient.gson.toJson(message.content);
+        var uri = this.client.getURI("rooms/" + roomId + "/send/m.room.message" + "/" + txnId, this.userId);
+        var json = MatrixBridgeClient.gson.toJson(content);
         return this.client.sendRawPUTRequest(uri, json);
     }
 
+    /**
+     * Joins this user to a Matrix room. The room must either be public, or someone
+     * must have invited the user to the room.
+     * @param roomIdOrAlias The matrix room ID of the room, OR a room alias of the room.
+     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
+     * @throws IOException If there was an error while performing IO on the network request.
+     * @throws InterruptedException If the request was interrupted
+     */
     public HttpResponse joinRoom(String roomIdOrAlias) throws IOException, InterruptedException {
         var uri = this.client.getURI("join/" + roomIdOrAlias, this.userId);
         return this.client.sendRawPOSTRequest(uri);

@@ -1,6 +1,7 @@
 # Matrix Bridge Configuration
 serverURL: "http://localhost:8008"
 publicServerURL: "https://localhost"
+matrixDomain: "localhost"
 
 appservicePort: 9000
 

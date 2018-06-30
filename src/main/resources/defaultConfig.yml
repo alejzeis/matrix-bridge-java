@@ -1,6 +1,7 @@
 # Matrix Bridge Configuration
 serverURL: "http://localhost:8008"
 publicServerURL: "http://localhost:8008"
+matrixDomain: "localhost" # Domain of the matrix server, the end part on userIDs
 
 appservicePort: 9000
 

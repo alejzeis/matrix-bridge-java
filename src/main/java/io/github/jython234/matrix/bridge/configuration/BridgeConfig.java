@@ -55,6 +55,12 @@ public class BridgeConfig {
     protected String publicServerURL;
 
     /**
+     * The Domain of the matrix server, always the last part
+     * of Matrix User IDs.
+     */
+    protected String matrixDomain;
+
+    /**
      * The port we want the bridge to listen on.
      */
     protected int appservicePort;
@@ -137,6 +143,14 @@ public class BridgeConfig {
      */
     public String getPublicServerURL() {
         return this.publicServerURL;
+    }
+
+    /**
+     * Get the matrix homeserver's domain.
+     * @return The domain.
+     */
+    public String getMatrixDomain() {
+        return this.matrixDomain;
     }
 
     /**

@@ -53,8 +53,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MatrixBridgeClient {
     protected static final Gson gson = new GsonBuilder().create();
 
-    private final Logger logger;
-    private final MatrixBridge bridge;
+    protected final Logger logger;
+    protected final MatrixBridge bridge;
 
     private HttpClient httpClient;
 
@@ -67,13 +67,27 @@ public class MatrixBridgeClient {
 
         this.httpClient = HttpClient.newBuilder().executor(bridge.getAppservice().threadPoolTaskExecutor).build();
 
-        bridgeClient = new BridgeUserClient(this, this.bridge.getAppservice().getRegistration().getSenderLocalpart());
+        bridgeClient = new BridgeUserClient(this, "@" + this.bridge.getAppservice().getRegistration().getSenderLocalpart() + ":" + this.bridge.getConfig().getMatrixDomain());
     }
 
+    /**
+     * Returns a {@link BridgeUserClient} instance for the appservice user. You can use
+     * it to control the appservice's user.
+     *
+     * @return A {@link BridgeUserClient} instance for the appservice user.
+     */
     public BridgeUserClient getBridgeClient() {
         return this.bridgeClient;
     }
 
+    /**
+     * Returns a {@link BridgeUserClient} instance for a specific user within the appservice's domain.
+     * If it doesn't exist it will be automatically registered onto the server. It must be within the appservice's domain,
+     * specified in <code>registration.yml</code>
+     *
+     * @param userId The full User ID for the specific user. It must be within the domain of the appservice.
+     * @return A {@link BridgeUserClient} instance for the specific user.
+     */
     public BridgeUserClient getClientForUser(String userId) {
         if(!(userId.contains("@") && userId.contains(":"))) throw new IllegalArgumentException("Invalid userID! Correct format: \"@user:domain\"");
 
@@ -119,10 +133,13 @@ public class MatrixBridgeClient {
             sb.append("?access_token=");
             sb.append(this.bridge.getAppservice().getRegistration().getAsToken());
 
-            //if(!userId.equals(this.bridge.getAppservice().getRegistration().getSenderLocalpart())) {
+            if(!userId.equals("@" + this.bridge.getAppservice().getRegistration().getSenderLocalpart() + ":" + this.bridge.getConfig().getMatrixDomain())) {
                 sb.append("&user_id=");
                 sb.append(userId);
-            //}
+            } else {
+                sb.append("&ts=");
+                sb.append(System.currentTimeMillis());
+            }
 
             return new URI(sb.toString());
         } catch (URISyntaxException e) {
