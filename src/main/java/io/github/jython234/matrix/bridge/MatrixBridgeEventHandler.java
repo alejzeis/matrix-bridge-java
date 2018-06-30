@@ -62,12 +62,12 @@ public class MatrixBridgeEventHandler implements EventHandler {
 
     @Override
     public CreateRoomRequest onRoomAliasQueried(String s) {
-        return null;
+        return this.bridge.onRoomAliasQueried(s);
     }
 
     @Override
     public void onRoomAliasCreated(String alias) {
-
+        this.bridge.onRoomAliasCreated(alias);
     }
 
     @Override
