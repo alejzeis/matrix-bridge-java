@@ -26,11 +26,12 @@
  */
 package io.github.jython234.matrix.bridge.network;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.github.jython234.matrix.appservice.Util;
 import io.github.jython234.matrix.appservice.event.room.message.MessageContent;
-import io.github.jython234.matrix.appservice.event.room.message.MessageMatrixEvent;
+import io.github.jython234.matrix.bridge.db.User;
+import io.github.jython234.matrix.bridge.network.profile.SetAvatarURLRequest;
+import io.github.jython234.matrix.bridge.network.profile.SetDisplayNameRequest;
+import io.github.jython234.matrix.bridge.network.registration.UserExclusiveException;
 import io.github.jython234.matrix.bridge.network.registration.UserRegisterRequest;
 import jdk.incubator.http.HttpResponse;
 import org.json.simple.JSONObject;
@@ -52,47 +53,143 @@ public class BridgeUserClient {
     private MatrixBridgeClient client;
     private String userId;
 
-    protected BridgeUserClient(MatrixBridgeClient client, String userId) {
+    private User user;
+
+    protected BridgeUserClient(MatrixBridgeClient client, String userId) throws IOException {
         this.client = client;
         this.userId = userId;
+
+        if(!this.client.bridge.getDatabase().userExists(userId)) {
+            this.user = new User(this.client.bridge.getDatabase(), User.Type.REMOTE_USER, userId);
+            this.client.bridge.getDatabase().putUser(this.user);
+        } else this.user = this.client.bridge.getDatabase().getUser(userId);
     }
 
-    protected void register() throws IOException, InterruptedException {
+    protected void register() throws MatrixNetworkException {
         var json = MatrixBridgeClient.gson.toJson(new UserRegisterRequest(Util.getLocalpart(this.userId)));
 
-        var response = this.client.sendRawPOSTRequest(this.client.getURI("register", true), json);
-        switch (response.statusCode()) {
-            case 200:
-                break;
-            case 400:
-                JSONParser parser = new JSONParser();
-                try {
-                    var obj = (JSONObject) parser.parse(response.body());
-                    if(obj.get("errcode").equals("M_USER_IN_USE")) {
-                        return; // Silent ignore, as the user is already registered
-                    } else if(obj.get("errcode").equals("M_EXCLUSIVE")) {
-                        throw new RuntimeException("Attempting to register a user outside of this appservice's exclusive zone!");
-                    } else {
-                        throw new RuntimeException("Unknown error from server while registering BridgeUser: " + obj.get("errcode"));
+        try {
+            var response = this.client.sendRawPOSTRequest(this.client.getURI("register", true), json);
+            switch (response.statusCode()) {
+                case 200:
+                    break;
+                case 400:
+                    JSONParser parser = new JSONParser();
+                    try {
+                        var obj = (JSONObject) parser.parse(response.body());
+                        if(obj.get("errcode").equals("M_USER_IN_USE")) {
+                            return; // Silent ignore, as the user is already registered
+                        } else if(obj.get("errcode").equals("M_EXCLUSIVE")) {
+                            throw new UserExclusiveException("Attempting to register a user outside of this appservice's exclusive zone!");
+                        } else {
+                            throw new MatrixNetworkException("Unknown error from server while registering BridgeUser: " + obj.get("errcode"));
+                        }
+                    } catch (ParseException e) {
+                        throw new MatrixNetworkException("Bad JSON while registering BridgeUser");
                     }
-                } catch (ParseException e) {
-                    throw new RuntimeException("Bad JSON while registering BridgeUser");
-                }
-            default:
-                throw new RuntimeException("Recieved unknown response code while registering BridgeUser: " + response.statusCode());
+                default:
+                    throw new MatrixNetworkException("Recieved unknown response code while registering BridgeUser: " + response.statusCode());
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
         }
     }
+
+    // PROFILE ------------------------------------------
+
+    /**
+     * Set this user's Matrix display name.
+     * @param displayName The new displayname.
+     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
+     * @throws MatrixNetworkException If there was any network exception while processing the request
+     */
+    public HttpResponse<String> setDisplayName(String displayName) throws MatrixNetworkException {
+        var uri = this.client.getURI("profile/" + this.userId + "/displayname", this.userId);
+        var json = MatrixBridgeClient.gson.toJson(new SetDisplayNameRequest(displayName));
+
+        try {
+            return this.client.sendRawPUTRequest(uri, json);
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
+     * Set this user's avatar URL. To set the user's avatar to a file, you must upload the file first
+     * using the resource API to get an MXC URL to it. Then use that URL with this function to set the avatar.
+     *
+     *
+     * @param url An MXC URL to the user's avatar.
+     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
+     * @throws MatrixNetworkException If there was any network exception while processing the request
+     */
+    // TODO: Add link to resource API
+    public HttpResponse<String> setAvatarURL(String url) throws MatrixNetworkException {
+        var uri = this.client.getURI("profile/" + this.userId + "/avatar_url", this.userId);
+        var json = MatrixBridgeClient.gson.toJson(new SetAvatarURLRequest(url));
+
+        try {
+            return this.client.sendRawPUTRequest(uri, json);
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
+     * Get this user's display name from the matrix user.
+     * @return The user's displayname.
+     * @throws MatrixNetworkException If there was any network exception while processing the request
+     */
+    public String getDisplayName() throws MatrixNetworkException {
+        var uri = this.client.getURI("profile/" + this.userId + "/displayname", this.userId);
+        try {
+            var response = this.client.sendRawGETRequest(uri);
+            if(response.statusCode() != 200) {
+                this.client.logger.warn("Non-200 status code for request " + uri);
+                this.client.logger.warn(response.body());
+
+                throw new MatrixNetworkException("Non-200 status code: " + response.statusCode());
+            }
+            // SetDisplayNameRequest is the same format as getting  the displayname
+            return MatrixBridgeClient.gson.fromJson(response.body(), SetDisplayNameRequest.class).displayName;
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
+     * Get this user's avatar URL, which is an MXC URL.
+     * @return The user's MXC avatar URL.
+     * @throws MatrixNetworkException If there was any network exception while processing the request
+     */
+    public String getAvatarURL() throws MatrixNetworkException {
+        var uri = this.client.getURI("profile/" + this.userId + "/avatar_url", this.userId);
+        try {
+            var response = this.client.sendRawGETRequest(uri);
+            if(response.statusCode() != 200) {
+                this.client.logger.warn("Non-200 status code for request " + uri);
+                this.client.logger.warn(response.body());
+
+                throw new MatrixNetworkException("Non-200 status code: " + response.statusCode());
+            }
+            // SetAvatarURLRequest is the same format as getting the avatar URL
+            return MatrixBridgeClient.gson.fromJson(response.body(), SetAvatarURLRequest.class).avatarURL;
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    // ROOMS --------------------------------------------------------------
 
     /**
      * Sends a message to a Matrix room. The user must be joined to the room first!
      * @param roomId The matrix room ID of the room to send the message to.
      * @param content The Message content.
      * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
-     * @throws IOException If there was an error while performing IO on the network request.
-     * @throws InterruptedException If the request was interrupted
+     * @throws MatrixNetworkException If there was an error while performing the network request.
      * @see #joinRoom(String)
      */
-    public HttpResponse sendMessage(String roomId, MessageContent content) throws IOException, InterruptedException {
+    public HttpResponse sendMessage(String roomId, MessageContent content) throws MatrixNetworkException {
         long txnId;
         synchronized (nextTransactionId) {
             txnId = nextTransactionId++;
@@ -100,7 +197,11 @@ public class BridgeUserClient {
 
         var uri = this.client.getURI("rooms/" + roomId + "/send/m.room.message" + "/" + txnId, this.userId);
         var json = MatrixBridgeClient.gson.toJson(content);
-        return this.client.sendRawPUTRequest(uri, json);
+        try {
+            return this.client.sendRawPUTRequest(uri, json);
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
     }
 
     /**
@@ -108,11 +209,14 @@ public class BridgeUserClient {
      * must have invited the user to the room.
      * @param roomIdOrAlias The matrix room ID of the room, OR a room alias of the room.
      * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
-     * @throws IOException If there was an error while performing IO on the network request.
-     * @throws InterruptedException If the request was interrupted
+     * @throws MatrixNetworkException If there was an error while performing the network request.
      */
-    public HttpResponse joinRoom(String roomIdOrAlias) throws IOException, InterruptedException {
+    public HttpResponse joinRoom(String roomIdOrAlias) throws MatrixNetworkException {
         var uri = this.client.getURI("join/" + roomIdOrAlias, this.userId);
-        return this.client.sendRawPOSTRequest(uri);
+        try {
+            return this.client.sendRawPOSTRequest(uri);
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
     }
 }

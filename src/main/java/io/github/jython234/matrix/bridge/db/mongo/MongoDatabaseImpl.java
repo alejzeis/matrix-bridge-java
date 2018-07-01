@@ -68,11 +68,6 @@ public class MongoDatabaseImpl extends BridgeDatabase {
     }
 
     @Override
-    protected void updateUsersName(User user, String name) throws IOException {
-
-    }
-
-    @Override
     protected void updateUsersDataField(User user, String key, Serializable value) throws IOException {
 
     }

@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Represents a user between the two bridged applications. It is either
+ * Represents a user between the two bridged applications.
  *
  * @author jython234
  */
@@ -49,8 +49,6 @@ public class User implements Serializable {
 
     protected transient final BridgeDatabase database;
 
-    private String name = "";
-
     private Map<String, Serializable> additionalData;
 
     public User(BridgeDatabase db, Type type, String id) {
@@ -60,29 +58,11 @@ public class User implements Serializable {
         this.additionalData = new ConcurrentHashMap<>();
     }
 
-    public User(BridgeDatabase db, Type type, String id, String name, Map<String, Serializable> data) {
+    public User(BridgeDatabase db, Type type, String id, Map<String, Serializable> data) {
         this.database =db;
         this.type = type;
         this.id = id;
-        this.name = name;
         this.additionalData = data;
-    }
-
-    /**
-     * Updates this user's name to a new name.
-     * @param newName The user's new name.
-     * @throws DatabaseException If there is an error while updating the name. This is a {@link RuntimeException} based exception.
-     */
-    public synchronized void updateName(String newName) {
-        String oldName = this.name;
-
-        this.name = newName;
-        try {
-            this.database.updateUsersName(this, newName);
-        } catch (IOException e) {
-            this.name = oldName; // Revert to old name as the database probably didn't update or save correctly.
-            throw new DatabaseException(e);
-        }
     }
 
     /**
@@ -118,15 +98,6 @@ public class User implements Serializable {
         }
 
         return value;
-    }
-
-    /**
-     * Get the user's name, or display name.
-     * This is the name that is displayed when messages are sent.
-     * @return The name of the user.
-     */
-    public synchronized String getName() {
-        return this.name;
     }
 
     /**

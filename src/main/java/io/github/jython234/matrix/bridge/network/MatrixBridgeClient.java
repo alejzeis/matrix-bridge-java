@@ -67,7 +67,11 @@ public class MatrixBridgeClient {
 
         this.httpClient = HttpClient.newBuilder().executor(bridge.getAppservice().threadPoolTaskExecutor).build();
 
-        bridgeClient = new BridgeUserClient(this, "@" + this.bridge.getAppservice().getRegistration().getSenderLocalpart() + ":" + this.bridge.getConfig().getMatrixDomain());
+        try {
+            bridgeClient = new BridgeUserClient(this, "@" + this.bridge.getAppservice().getRegistration().getSenderLocalpart() + ":" + this.bridge.getConfig().getMatrixDomain());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -86,23 +90,31 @@ public class MatrixBridgeClient {
      * specified in <code>registration.yml</code>
      *
      * @param userId The full User ID for the specific user. It must be within the domain of the appservice.
+     * @throws io.github.jython234.matrix.bridge.network.registration.UserExclusiveException If the user in question is exclusive and can't be controlled by this appservice.
      * @return A {@link BridgeUserClient} instance for the specific user.
+     * @see io.github.jython234.matrix.bridge.network.registration.UserExclusiveException
      */
     public BridgeUserClient getClientForUser(String userId) {
         if(!(userId.contains("@") && userId.contains(":"))) throw new IllegalArgumentException("Invalid userID! Correct format: \"@user:domain\"");
 
         if(!bridgeUsers.containsKey(userId)) {
-            var client = new BridgeUserClient(this, userId);
             try {
+                var client = new BridgeUserClient(this, userId);
                 client.register();
                 this.bridgeUsers.put(userId, client);
                 return client;
-            } catch (IOException | InterruptedException e) {
+            } catch (MatrixNetworkException | IOException e ) {
                 throw new RuntimeException(e);
             }
         } else return bridgeUsers.get(userId);
     }
 
+    /**
+     * Returns a full URI for a matrix API call.
+     * @param matrixPath The path past "/_matrix/client/r0"
+     * @param appendAccessToken If the appservice's access token should be appended to the request.
+     * @return The full URI.
+     */
     public URI getURI(String matrixPath, boolean appendAccessToken) {
         try {
             var sb = new StringBuilder();
@@ -122,6 +134,12 @@ public class MatrixBridgeClient {
         }
     }
 
+    /**
+     * Returns a full URI for a matrix API call to be performed as a specific user.
+     * @param matrixPath The matrix path past "/_matrix/client/r0/"
+     * @param userId The full UserID of the user that this action will be performed by.
+     * @return The full URI
+     */
     public URI getURI(String matrixPath, String userId) {
         try {
             var sb = new StringBuilder();

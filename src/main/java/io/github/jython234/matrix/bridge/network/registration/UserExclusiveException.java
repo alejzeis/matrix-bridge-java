@@ -27,15 +27,13 @@
 package io.github.jython234.matrix.bridge.network.registration;
 
 /**
- * Internal Request Class for use with GSON.
+ * Exception thrown when a user is attempting to be registered in an exclusive space,
+ * such as another appservice's space or one that doesn't belong to this appservice.
  *
  * @author jython234
  */
-public class UserRegisterRequest {
-    public String type = "m.login.application_service";
-    public String username;
-
-    public UserRegisterRequest(String username) {
-        this.username = username;
+public class UserExclusiveException extends RuntimeException {
+    public UserExclusiveException(String msg) {
+        super(msg);
     }
 }

@@ -24,18 +24,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.network.registration;
+package io.github.jython234.matrix.bridge.network.profile;
+
+import com.google.gson.annotations.SerializedName;
 
 /**
  * Internal Request Class for use with GSON.
  *
  * @author jython234
  */
-public class UserRegisterRequest {
-    public String type = "m.login.application_service";
-    public String username;
+public class SetAvatarURLRequest {
+    @SerializedName("avatar_url")
+    public String avatarURL;
 
-    public UserRegisterRequest(String username) {
-        this.username = username;
+    public SetAvatarURLRequest(String avatarURL) {
+        this.avatarURL = avatarURL;
     }
 }

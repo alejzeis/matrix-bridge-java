@@ -24,15 +24,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.db;
+package io.github.jython234.matrix.bridge.network.profile;
+
+import com.google.gson.annotations.SerializedName;
 
 /**
- * Main database class for all database operations related to
- * the bridge. This class will interact with the lower-level specific DB implementations
- * (LevelDB and MongoDB).
+ * Internal Request Class for use with GSON.
  *
  * @author jython234
  */
-public class MatrixBridgeDatabase {
+public class SetDisplayNameRequest {
+    @SerializedName("displayname")
+    public String displayName;
 
+    public SetDisplayNameRequest(String displayName) {
+        this.displayName = displayName;
+    }
 }

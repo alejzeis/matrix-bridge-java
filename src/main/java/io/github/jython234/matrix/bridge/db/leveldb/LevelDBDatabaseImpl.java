@@ -86,11 +86,6 @@ public class LevelDBDatabaseImpl extends BridgeDatabase {
     }
 
     @Override
-    protected void updateUsersName(User user, String name) throws IOException {
-        this.putUser(user); // LevelDB doesn't support any specific updating so we'll just overwrite the entry.
-    }
-
-    @Override
     protected void updateUsersDataField(User user, String key, Serializable value) throws IOException {
         this.putUser(user); // LevelDB doesn't support any specific updating so we'll just overwrite the entry.
     }

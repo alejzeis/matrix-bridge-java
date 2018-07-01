@@ -101,15 +101,6 @@ public abstract class BridgeDatabase implements Closeable {
     }
 
     /**
-     * Utility method used by {@link User#updateName(String)} to update the user's name.
-     * @param user The user to perform the operation on.
-     * @param name The new name of the user.
-     * @throws IOException If there is an error while updating the name.
-     * @see User#updateName(String)
-     */
-    protected abstract void updateUsersName(User user, String name) throws IOException;
-
-    /**
      * Updates a key,value pair of the user's additional data. Used by
      * {@link User#updateDataField(String, Serializable)}.
      * @param user The user to perform the operation on.

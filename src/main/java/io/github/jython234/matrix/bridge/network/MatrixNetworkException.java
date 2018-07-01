@@ -24,18 +24,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.network.registration;
+package io.github.jython234.matrix.bridge.network;
 
 /**
- * Internal Request Class for use with GSON.
+ * General purpose exception thrown when there is a network error
+ * during matrix related calls.
  *
  * @author jython234
  */
-public class UserRegisterRequest {
-    public String type = "m.login.application_service";
-    public String username;
+public class MatrixNetworkException extends Exception {
 
-    public UserRegisterRequest(String username) {
-        this.username = username;
+    public MatrixNetworkException(String msg) {
+        super(msg);
+    }
+
+    public MatrixNetworkException(Exception e) {
+        super(e);
     }
 }

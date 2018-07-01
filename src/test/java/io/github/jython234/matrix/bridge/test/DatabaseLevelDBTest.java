@@ -90,7 +90,6 @@ class DatabaseLevelDBTest {
     @Test
     @DisplayName("Checks if a user can successfully be retrieved from the database and modified")
     void testUserGetAndModify() throws IOException {
-        testUser3.updateName("A Name");
         testUser3.updateDataField("testKey", "testValue");
 
         db.putUser(testUser3);
@@ -100,7 +99,6 @@ class DatabaseLevelDBTest {
         assertUserCommon(testUser3, user);
         assertEquals(testUser3.getAdditionalData().get("testKey"), user.getAdditionalData().get("testKey"));
 
-        testUser3.updateName("a New Name");
         testUser3.updateDataField("testKey", "aNewValue");
         testUser3.updateDataField("aNewKey", "aValue");
 
@@ -115,7 +113,6 @@ class DatabaseLevelDBTest {
     private void assertUserCommon(User user1, User user2) {
         assertEquals(user1.type, user2.type);
         assertEquals(user1.id, user2.id);
-        assertEquals(user1.getName(), user2.getName());
 
         assertEquals(user1.getAdditionalData().size(), user2.getAdditionalData().size());
     }

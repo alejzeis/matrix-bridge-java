@@ -99,9 +99,9 @@ public abstract class MatrixBridge {
         this.eventHandlers = new ConcurrentHashMap<>();
         this.findEventHandlers();
 
-        this.client = new MatrixBridgeClient(this);
-
         this.setupDatabase();
+
+        this.client = new MatrixBridgeClient(this);
     }
 
     private void loadConfig() {

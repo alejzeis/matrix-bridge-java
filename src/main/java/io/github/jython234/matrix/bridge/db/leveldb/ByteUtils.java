@@ -43,7 +43,7 @@ public class ByteUtils {
      * Database storage version. If it doesn't match our current one the database
      * will need to be upgraded.
      */
-    public static final int DB_VERSION = 1;
+    public static final int DB_VERSION = 2;
 
     /**
      * Get the LevelDB key for a user, provided their ID.
@@ -66,7 +66,6 @@ public class ByteUtils {
 
         objos.writeByte(user.type.getIntegerValue());
         objos.writeUTF(user.id);
-        objos.writeUTF(user.getName());
         objos.writeObject(user.getAdditionalData());
 
         return baos.toByteArray();
@@ -79,11 +78,10 @@ public class ByteUtils {
 
         var type = objis.readByte() == User.Type.MATRIX_USER.getIntegerValue() ? User.Type.MATRIX_USER : User.Type.REMOTE_USER;
         var id = objis.readUTF();
-        var name = objis.readUTF();
 
         try {
             var data = (Map) objis.readObject();
-            return new User(db, type, id, name, data);
+            return new User(db, type, id, data);
         } catch (ClassNotFoundException | ClassCastException e) {
             throw new IOException(e);
         }
