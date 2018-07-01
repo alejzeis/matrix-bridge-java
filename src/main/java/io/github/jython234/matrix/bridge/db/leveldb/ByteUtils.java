@@ -27,6 +27,7 @@
 package io.github.jython234.matrix.bridge.db.leveldb;
 
 import io.github.jython234.matrix.bridge.db.BridgeDatabase;
+import io.github.jython234.matrix.bridge.db.Room;
 import io.github.jython234.matrix.bridge.db.User;
 
 import java.io.*;
@@ -39,11 +40,9 @@ import java.util.Map;
  * @author jython234
  */
 public class ByteUtils {
-    /**
-     * Database storage version. If it doesn't match our current one the database
-     * will need to be upgraded.
-     */
-    public static final int DB_VERSION = 2;
+
+    public static final byte ROOM_KEY_TYPE_DATA = 0;
+    public static final byte ROOM_KEY_TYPE_MAPPING = 1;
 
     /**
      * Get the LevelDB key for a user, provided their ID.
@@ -54,6 +53,17 @@ public class ByteUtils {
         var bytes = id.getBytes();
         var bb = ByteBuffer.allocate(bytes.length + 2);
 
+        bb.putShort((short) bytes.length);
+        bb.put(bytes);
+
+        return bb.array();
+    }
+
+    public static byte[] getRoomKeyValue(String id, boolean isMatrixIdMapping) {
+        var bytes = id.getBytes();
+        var bb = ByteBuffer.allocate(bytes.length + 3);
+
+        bb.put(isMatrixIdMapping ? ROOM_KEY_TYPE_MAPPING : ROOM_KEY_TYPE_DATA);
         bb.putShort((short) bytes.length);
         bb.put(bytes);
 
@@ -83,6 +93,33 @@ public class ByteUtils {
             var data = (Map) objis.readObject();
             return new User(db, type, id, data);
         } catch (ClassNotFoundException | ClassCastException e) {
+            throw new IOException(e);
+        }
+    }
+
+    public static byte[] serializeRoom(Room room) throws IOException {
+        var baos = new ByteArrayOutputStream();
+        var objos = new ObjectOutputStream(baos);
+
+        objos.writeUTF(room.id);
+        objos.writeUTF(room.getMatrixId());
+        objos.writeObject(room.getAdditionalData());
+
+        return baos.toByteArray();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Room deserializeRoom(byte[] bytes, BridgeDatabase db) throws IOException {
+        var bais = new ByteArrayInputStream(bytes);
+        var objis = new ObjectInputStream(bais);
+
+        var id = objis.readUTF();
+        var matrixId = objis.readUTF();
+
+        try {
+            var data = (Map) objis.readObject();
+            return new Room(db, id, matrixId, data);
+        } catch(ClassNotFoundException | ClassCastException e) {
             throw new IOException(e);
         }
     }

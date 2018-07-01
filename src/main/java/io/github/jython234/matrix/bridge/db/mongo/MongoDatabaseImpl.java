@@ -29,6 +29,7 @@ package io.github.jython234.matrix.bridge.db.mongo;
 import io.github.jython234.matrix.bridge.MatrixBridge;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.db.BridgeDatabase;
+import io.github.jython234.matrix.bridge.db.Room;
 import io.github.jython234.matrix.bridge.db.User;
 
 import java.io.IOException;
@@ -43,7 +44,7 @@ import java.io.Serializable;
 public class MongoDatabaseImpl extends BridgeDatabase {
 
     public MongoDatabaseImpl(MatrixBridge bridge, BridgeConfig.MongoDBInfo dbInfo) {
-        super(bridge);
+        super(bridge, "MongoDBImpl");
     }
     // TODO: Implementation
 
@@ -64,6 +65,51 @@ public class MongoDatabaseImpl extends BridgeDatabase {
 
     @Override
     public void deleteUser(String id) throws IOException {
+
+    }
+
+    @Override
+    public boolean roomExists(String id) {
+        return false;
+    }
+
+    @Override
+    public boolean roomExistsByMatrixId(String matrixId) {
+        return false;
+    }
+
+    @Override
+    public void putRoom(Room room) throws IOException {
+
+    }
+
+    @Override
+    public Room getRoom(String id) throws IOException {
+        return null;
+    }
+
+    @Override
+    public Room getRoomByMatrixId(String matrixId) throws IOException {
+        return null;
+    }
+
+    @Override
+    public void deleteRoom(String id) throws IOException {
+
+    }
+
+    @Override
+    protected void updateRoomMatrixId(Room room, String matrixId) throws IOException {
+
+    }
+
+    @Override
+    protected void updateRoomDataField(Room room, String key, Serializable value) throws IOException {
+
+    }
+
+    @Override
+    protected void deleteRoomDataField(Room room, String key) throws IOException {
 
     }
 

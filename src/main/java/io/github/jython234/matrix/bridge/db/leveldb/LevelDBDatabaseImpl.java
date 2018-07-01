@@ -30,6 +30,7 @@ import io.github.jython234.matrix.bridge.MatrixBridge;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.db.DatabaseException;
 import io.github.jython234.matrix.bridge.db.BridgeDatabase;
+import io.github.jython234.matrix.bridge.db.Room;
 import io.github.jython234.matrix.bridge.db.User;
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.Options;
@@ -47,10 +48,18 @@ import java.io.Serializable;
  * @see BridgeDatabase
  */
 public class LevelDBDatabaseImpl extends BridgeDatabase {
+    public static final byte[] DB_VERSION_MAGIC = new byte[] {(byte) 0xDB, (byte) 0xFE};
+    /**
+     * Database storage version. If it doesn't match our current one the database
+     * will need to be upgraded.
+     */
+    public static final byte DB_VERSION = 2;
+
     private DB database;
 
     public LevelDBDatabaseImpl(MatrixBridge bridge, BridgeConfig.LevelDBInfo levelDbConfigInfo) {
-        super(bridge);
+        super(bridge, "LevelDBImpl");
+
         var options = new Options().createIfMissing(true)
                 .cacheSize(levelDbConfigInfo.cacheSize)
                 .compressionType(levelDbConfigInfo.compressionType);
@@ -58,6 +67,19 @@ public class LevelDBDatabaseImpl extends BridgeDatabase {
         this.logger.info("Opening LevelDB database with " + levelDbConfigInfo.cacheSize + "MB cache size and Compression: " + levelDbConfigInfo.compressionType.name());
         try {
             this.database = factory.open(new File(levelDbConfigInfo.directory), options);
+
+            // Check the version
+            var version = this.database.get(DB_VERSION_MAGIC);
+            if(version == null) {
+                // Assume database was just created
+                this.database.put(DB_VERSION_MAGIC, new byte[] {DB_VERSION});
+            } else if(version[0] != DB_VERSION) {
+                this.logger.error("Database version " + version[0] + " does not match ours! (" + DB_VERSION +")");
+                this.logger.error("Either this matrix-bridge-java version is outdated, or the database was created with a previous version");
+                this.logger.error("Repair needed!");
+                throw new DatabaseException("Database version mismatch");
+            }
+
         } catch (IOException e) {
             throw new DatabaseException(e);
         }
@@ -83,6 +105,77 @@ public class LevelDBDatabaseImpl extends BridgeDatabase {
     @Override
     public void deleteUser(String id) {
         this.database.delete(ByteUtils.getUserKeyValue(id));
+    }
+
+    @Override
+    public boolean roomExists(String id) {
+        return this.database.get(ByteUtils.getRoomKeyValue(id, false)) != null;
+    }
+
+    @Override
+    public boolean roomExistsByMatrixId(String matrixId) {
+        var key = this.database.get(ByteUtils.getRoomKeyValue(matrixId, true));
+        if(key == null) return false;
+
+        return this.database.get(key) != null;
+    }
+
+    @Override
+    public void putRoom(Room room) throws IOException {
+        this._putRoom(room, true);
+    }
+
+    protected void _putRoom(Room room, boolean doReverseMapping) throws IOException {
+        var key = ByteUtils.getRoomKeyValue(room.id, false);
+
+        this.database.put(key, ByteUtils.serializeRoom(room));
+        if(doReverseMapping && room.getMatrixId() != null && !room.getMatrixId().equals("")) {
+            // Add a reverse mapping with the key being the matrixId and the value as the normal id, so we can retrieve the actual Room data
+            // if we have either the normal id or the matrixId
+            this.database.put(ByteUtils.getRoomKeyValue(room.getMatrixId(), true), key);
+        }
+    }
+
+    @Override
+    public Room getRoom(String id) throws IOException {
+        var data = this.database.get(ByteUtils.getRoomKeyValue(id, false));
+        return data != null ? ByteUtils.deserializeRoom(data, this) : null;
+    }
+
+    @Override
+    public Room getRoomByMatrixId(String matrixId) throws IOException {
+        var key = this.database.get(ByteUtils.getRoomKeyValue(matrixId, true));
+        if(key == null) return null;
+
+        var data = this.database.get(key);
+        return data != null ? ByteUtils.deserializeRoom(data, this) : null;
+    }
+
+    @Override
+    public void deleteRoom(Room room) {
+        this.database.delete(ByteUtils.getRoomKeyValue(room.id, false));
+        this.database.delete(ByteUtils.getRoomKeyValue(room.getMatrixId(), true));
+    }
+
+    @Override
+    public void deleteRoom(String id) throws IOException {
+        Room room = this.getRoom(id); // We need to delete the reverse mapping too, so we need to know the matrix ID
+        this.deleteRoom(room);
+    }
+
+    @Override
+    protected void updateRoomMatrixId(Room room, String matrixId) throws IOException {
+        this._putRoom(room, true); // LevelDB doesn't support any specific updating so we'll just overwrite the entry.
+    }
+
+    @Override
+    protected void updateRoomDataField(Room room, String key, Serializable value) throws IOException {
+        this._putRoom(room, false); // LevelDB doesn't support any specific updating so we'll just overwrite the entry.
+    }
+
+    @Override
+    protected void deleteRoomDataField(Room room, String key) throws IOException {
+        this._putRoom(room, false); // LevelDB doesn't support any specific updating so we'll just overwrite the entry.
     }
 
     @Override

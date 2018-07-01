@@ -43,9 +43,9 @@ public abstract class BridgeDatabase implements Closeable {
     protected final MatrixBridge bridge;
     protected final Logger logger;
 
-    public BridgeDatabase(MatrixBridge bridge) {
+    protected BridgeDatabase(MatrixBridge bridge, String providerName) {
         this.bridge = bridge;
-        this.logger = LoggerFactory.getLogger("MatrixBridge-Database");
+        this.logger = LoggerFactory.getLogger("BridgeDatabase-" + providerName);
     }
 
     /**
@@ -99,6 +99,99 @@ public abstract class BridgeDatabase implements Closeable {
     public void deleteUser(User user) throws IOException {
         deleteUser(user.id);
     }
+
+    /**
+     * Check if a room entry exists with the given ID.
+     * @param id The ID of the room.
+     * @return If the room exists or not.
+     * @see Room#id
+     */
+    public abstract boolean roomExists(String id);
+
+    /**
+     * Check if the room entry exists in the database.
+     * @param room The Room to check.
+     * @return If it exists or not.
+     */
+    public boolean roomExists(Room room) {
+        return this.roomExists(room.id);
+    }
+
+    /**
+     * Check if a room entry exists with the given matrix ID.
+     * @param matrixId The matrix ID of the room entry.
+     * @return If the room exists or not.
+     * @see Room#matrixId
+     */
+    public abstract boolean roomExistsByMatrixId(String matrixId);
+
+    /**
+     * Puts a Room entry into the database, overwriting one if it already exists.
+     * @param room The {@link Room} to be inserted.
+     * @throws IOException If there is an error while attempting to insert the room into the database.
+     */
+    public abstract void putRoom(Room room) throws IOException;
+
+    /**
+     * Get a {@link Room} from the database, returning <code>null</code> if it doesn't exist.
+     * @param id The ID of the room (not matrix ID).
+     * @return The Room entry if found, null if not.
+     * @throws IOException If there was an error while attempting to get the room from the database.
+     */
+    public abstract Room getRoom(String id) throws IOException;
+
+    /**
+     * Get a {@link Room} from the database, by matrix ID, returning <code>null</code> if it doesn't exist.
+     * @param matrixId The matrix ID of the room ({@link Room#matrixId}).
+     * @return The Room entry if found, null if not.
+     * @throws IOException If there was an error while attempting to get the room from the database.
+     */
+    public abstract Room getRoomByMatrixId(String matrixId) throws IOException;
+
+    /**
+     * Deletes a room from the database, based on the ID.
+     * @param id The ID of the room to be deleted.
+     * @throws IOException If there is an error while deleting the room.
+     */
+    public abstract void deleteRoom(String id) throws IOException;
+
+    /**
+     * Deletes a {@link Room} from the database, based on its {@link Room#id}.
+     * @param room The {@link Room} to be deleted.
+     * @throws IOException If there is an error while deleting the room.
+     */
+    public void deleteRoom(Room room) throws IOException {
+        deleteRoom(room.id);
+    }
+
+    /**
+     * Updates a {@link Room#matrixId}. Used by {@link Room#updateMatrixId(String)}
+     * @param room The {@link Room} to perform the update on.
+     * @param matrixId The new matrix ID.
+     * @throws IOException If there is an error while updating the value.
+     */
+    protected abstract void updateRoomMatrixId(Room room, String matrixId) throws IOException;
+
+    /**
+     * Updates a key,value pair of the room's {@link Room#additionalData}. Used by
+     * {@link Room#updateDataField(String, Serializable)}
+     * @param room The room to perform the update on.
+     * @param key The key of the data field.
+     * @param value The value of the field.
+     * @throws IOException If there is an error while updating the data.
+     * @see Room#updateDataField(String, Serializable)
+     */
+    protected abstract void updateRoomDataField(Room room, String key, Serializable value) throws IOException;
+
+    /**
+     * Deletes a key,value pair of the user's additional data. Used by
+     * {@link Room#deleteDataField(String)}
+     * @param room The room to perform the deletion on.
+     * @param key The key of the field to be deleted.
+     * @throws IOException If there is an error while deleting the data.
+     * @see Room#deleteDataField(String)
+     */
+    protected abstract void deleteRoomDataField(Room room, String key) throws IOException;
 
     /**
      * Updates a key,value pair of the user's additional data. Used by
