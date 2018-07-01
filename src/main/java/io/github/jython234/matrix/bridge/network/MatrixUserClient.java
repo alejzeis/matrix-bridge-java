@@ -33,6 +33,7 @@ import io.github.jython234.matrix.bridge.network.profile.SetAvatarURLRequest;
 import io.github.jython234.matrix.bridge.network.profile.SetDisplayNameRequest;
 import io.github.jython234.matrix.bridge.network.registration.UserExclusiveException;
 import io.github.jython234.matrix.bridge.network.registration.UserRegisterRequest;
+import io.github.jython234.matrix.bridge.network.room.InviteRequest;
 import jdk.incubator.http.HttpResponse;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -47,15 +48,15 @@ import java.io.IOException;
  *
  * @author jython234
  */
-public class BridgeUserClient {
+public class MatrixUserClient {
     private static Long nextTransactionId = 0L;
 
-    private MatrixBridgeClient client;
+    private MatrixClientManager client;
     private String userId;
 
     private User user;
 
-    protected BridgeUserClient(MatrixBridgeClient client, String userId) throws IOException {
+    protected MatrixUserClient(MatrixClientManager client, String userId) throws IOException {
         this.client = client;
         this.userId = userId;
 
@@ -66,7 +67,7 @@ public class BridgeUserClient {
     }
 
     protected void register() throws MatrixNetworkException {
-        var json = MatrixBridgeClient.gson.toJson(new UserRegisterRequest(Util.getLocalpart(this.userId)));
+        var json = MatrixClientManager.gson.toJson(new UserRegisterRequest(Util.getLocalpart(this.userId)));
 
         try {
             var response = this.client.sendRawPOSTRequest(this.client.getURI("register", true), json);
@@ -105,7 +106,7 @@ public class BridgeUserClient {
      */
     public HttpResponse<String> setDisplayName(String displayName) throws MatrixNetworkException {
         var uri = this.client.getURI("profile/" + this.userId + "/displayname", this.userId);
-        var json = MatrixBridgeClient.gson.toJson(new SetDisplayNameRequest(displayName));
+        var json = MatrixClientManager.gson.toJson(new SetDisplayNameRequest(displayName));
 
         try {
             return this.client.sendRawPUTRequest(uri, json);
@@ -126,7 +127,7 @@ public class BridgeUserClient {
     // TODO: Add link to resource API
     public HttpResponse<String> setAvatarURL(String url) throws MatrixNetworkException {
         var uri = this.client.getURI("profile/" + this.userId + "/avatar_url", this.userId);
-        var json = MatrixBridgeClient.gson.toJson(new SetAvatarURLRequest(url));
+        var json = MatrixClientManager.gson.toJson(new SetAvatarURLRequest(url));
 
         try {
             return this.client.sendRawPUTRequest(uri, json);
@@ -151,7 +152,7 @@ public class BridgeUserClient {
                 throw new MatrixNetworkException("Non-200 status code: " + response.statusCode());
             }
             // SetDisplayNameRequest is the same format as getting  the displayname
-            return MatrixBridgeClient.gson.fromJson(response.body(), SetDisplayNameRequest.class).displayName;
+            return MatrixClientManager.gson.fromJson(response.body(), SetDisplayNameRequest.class).displayName;
         } catch (IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
@@ -173,7 +174,7 @@ public class BridgeUserClient {
                 throw new MatrixNetworkException("Non-200 status code: " + response.statusCode());
             }
             // SetAvatarURLRequest is the same format as getting the avatar URL
-            return MatrixBridgeClient.gson.fromJson(response.body(), SetAvatarURLRequest.class).avatarURL;
+            return MatrixClientManager.gson.fromJson(response.body(), SetAvatarURLRequest.class).avatarURL;
         } catch (IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
@@ -196,9 +197,28 @@ public class BridgeUserClient {
         }
 
         var uri = this.client.getURI("rooms/" + roomId + "/send/m.room.message" + "/" + txnId, this.userId);
-        var json = MatrixBridgeClient.gson.toJson(content);
+        var json = MatrixClientManager.gson.toJson(content);
         try {
             return this.client.sendRawPUTRequest(uri, json);
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
+     * Invites another user to a room. You must be in the room to invite someone to it.
+     * @param roomId The full room ID (no aliases) of the room that the user will be invited to.
+     * @param userId The full UserID of the user to be invited.
+     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
+     *          It's recommended to check the response code and body as there might have been an error.
+     * @throws MatrixNetworkException If there was an error while performing the network request.
+     */
+    public HttpResponse<String> invite(String roomId, String userId) throws MatrixNetworkException {
+        var uri = this.client.getURI("rooms/" + roomId + "/invite", this.userId);
+        var json = MatrixClientManager.gson.toJson(new InviteRequest(userId));
+
+        try {
+            return this.client.sendRawPOSTRequest(uri, json);
         } catch (IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
@@ -211,8 +231,24 @@ public class BridgeUserClient {
      * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
      * @throws MatrixNetworkException If there was an error while performing the network request.
      */
-    public HttpResponse joinRoom(String roomIdOrAlias) throws MatrixNetworkException {
+    public HttpResponse<String> joinRoom(String roomIdOrAlias) throws MatrixNetworkException {
         var uri = this.client.getURI("join/" + roomIdOrAlias, this.userId);
+        try {
+            return this.client.sendRawPOSTRequest(uri);
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
+     * Leaves this user from a room.
+     * @param roomId The full room ID (no aliases) of the room to be left.
+     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
+     *           It's recommended to check the response code and body as there might have been an error.
+     * @throws MatrixNetworkException If there was an error while performing the network request
+     */
+    public HttpResponse<String> leaveRoom(String roomId) throws MatrixNetworkException {
+        var uri = this.client.getURI("rooms/" + roomId + "/leave", this.userId);
         try {
             return this.client.sendRawPOSTRequest(uri);
         } catch (IOException | InterruptedException e) {

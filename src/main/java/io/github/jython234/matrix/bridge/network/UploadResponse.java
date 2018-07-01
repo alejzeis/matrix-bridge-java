@@ -24,33 +24,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-module io.github.jython234.matrix.bridge {
-    requires java.base;
-    requires jdk.incubator.httpclient;
+package io.github.jython234.matrix.bridge.network;
 
-    requires slf4j.api;
-    requires snakeyaml;
+import com.google.gson.annotations.SerializedName;
 
-    requires leveldbjni.all;
+/**
+ * Internal Request Class for use with GSON.
+ *
+ * @author jython234
+ */
+public class UploadResponse {
+    @SerializedName("content_uri")
+    public String contentUri;
 
-    requires json.simple;
-    requires gson;
-
-    requires spring.beans;
-    requires spring.core;
-    requires spring.context;
-    requires spring.web;
-    requires spring.webmvc;
-    requires spring.boot;
-    requires spring.boot.autoconfigure;
-
-    requires io.github.jython234.matrix.appservice;
-
-    exports io.github.jython234.matrix.bridge;
-    exports io.github.jython234.matrix.bridge.configuration;
-    exports io.github.jython234.matrix.bridge.db;
-    exports io.github.jython234.matrix.bridge.network;
-    exports io.github.jython234.matrix.bridge.network.registration;
-    exports io.github.jython234.matrix.bridge.network.profile;
-    exports io.github.jython234.matrix.bridge.network.room;
+    public UploadResponse(String contentUri) {
+        this.contentUri = contentUri;
+    }
 }

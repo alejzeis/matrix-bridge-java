@@ -36,7 +36,7 @@ import io.github.jython234.matrix.bridge.configuration.BridgeConfigLoader;
 import io.github.jython234.matrix.bridge.db.BridgeDatabase;
 import io.github.jython234.matrix.bridge.db.leveldb.LevelDBDatabaseImpl;
 import io.github.jython234.matrix.bridge.db.mongo.MongoDatabaseImpl;
-import io.github.jython234.matrix.bridge.network.MatrixBridgeClient;
+import io.github.jython234.matrix.bridge.network.MatrixClientManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +68,7 @@ public abstract class MatrixBridge {
 
     protected Map<Class<? extends MatrixEvent>, List<Method>> eventHandlers;
 
-    private MatrixBridgeClient client;
+    private MatrixClientManager clientManager;
 
     /**
      * Create a new instance with the specified information.
@@ -101,7 +101,7 @@ public abstract class MatrixBridge {
 
         this.setupDatabase();
 
-        this.client = new MatrixBridgeClient(this);
+        this.clientManager = new MatrixClientManager(this);
     }
 
     private void loadConfig() {
@@ -232,7 +232,7 @@ public abstract class MatrixBridge {
         return this.database;
     }
 
-    public MatrixBridgeClient getClient() {
-        return client;
+    public MatrixClientManager getClientManager() {
+        return clientManager;
     }
 }

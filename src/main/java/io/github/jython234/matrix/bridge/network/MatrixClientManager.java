@@ -35,9 +35,13 @@ import jdk.incubator.http.HttpResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLConnection;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,7 +54,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author jython234
  * @see <a href="https://matrix.org/docs/spec/application_service/unstable.html#client-server-api-extensions">Matrix Client-Server API Extensions</a>
  */
-public class MatrixBridgeClient {
+public class MatrixClientManager {
     protected static final Gson gson = new GsonBuilder().create();
 
     protected final Logger logger;
@@ -58,48 +62,48 @@ public class MatrixBridgeClient {
 
     private HttpClient httpClient;
 
-    private Map<String, BridgeUserClient> bridgeUsers = new ConcurrentHashMap<>(); // Map of 'bot created' users by the appservice
-    private BridgeUserClient bridgeClient;
+    private Map<String, MatrixUserClient> bridgeUsers = new ConcurrentHashMap<>(); // Map of 'bot created' users by the appservice
+    private MatrixUserClient bridgeClient;
 
-    public MatrixBridgeClient(MatrixBridge bridge) {
+    public MatrixClientManager(MatrixBridge bridge) {
         this.logger = LoggerFactory.getLogger("MatrixBridge-Client");
         this.bridge = bridge;
 
         this.httpClient = HttpClient.newBuilder().executor(bridge.getAppservice().threadPoolTaskExecutor).build();
 
         try {
-            bridgeClient = new BridgeUserClient(this, "@" + this.bridge.getAppservice().getRegistration().getSenderLocalpart() + ":" + this.bridge.getConfig().getMatrixDomain());
+            bridgeClient = new MatrixUserClient(this, "@" + this.bridge.getAppservice().getRegistration().getSenderLocalpart() + ":" + this.bridge.getConfig().getMatrixDomain());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     /**
-     * Returns a {@link BridgeUserClient} instance for the appservice user. You can use
+     * Returns a {@link MatrixUserClient} instance for the appservice user. You can use
      * it to control the appservice's user.
      *
-     * @return A {@link BridgeUserClient} instance for the appservice user.
+     * @return A {@link MatrixUserClient} instance for the appservice user.
      */
-    public BridgeUserClient getBridgeClient() {
+    public MatrixUserClient getBridgeClient() {
         return this.bridgeClient;
     }
 
     /**
-     * Returns a {@link BridgeUserClient} instance for a specific user within the appservice's domain.
+     * Returns a {@link MatrixUserClient} instance for a specific user within the appservice's domain.
      * If it doesn't exist it will be automatically registered onto the server. It must be within the appservice's domain,
      * specified in <code>registration.yml</code>
      *
      * @param userId The full User ID for the specific user. It must be within the domain of the appservice.
      * @throws io.github.jython234.matrix.bridge.network.registration.UserExclusiveException If the user in question is exclusive and can't be controlled by this appservice.
-     * @return A {@link BridgeUserClient} instance for the specific user.
+     * @return A {@link MatrixUserClient} instance for the specific user.
      * @see io.github.jython234.matrix.bridge.network.registration.UserExclusiveException
      */
-    public BridgeUserClient getClientForUser(String userId) {
+    public MatrixUserClient getClientForUser(String userId) {
         if(!(userId.contains("@") && userId.contains(":"))) throw new IllegalArgumentException("Invalid userID! Correct format: \"@user:domain\"");
 
         if(!bridgeUsers.containsKey(userId)) {
             try {
-                var client = new BridgeUserClient(this, userId);
+                var client = new MatrixUserClient(this, userId);
                 client.register();
                 this.bridgeUsers.put(userId, client);
                 return client;
@@ -162,6 +166,39 @@ public class MatrixBridgeClient {
             return new URI(sb.toString());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Uploads a file to the Matrix Content Repository. The "Content-Type" will be inferred using the method
+     * {@link URLConnection#guessContentTypeFromName(String)}.
+     * @param path The path to the file to be uploaded.
+     * @return The MXC URL of the uploaded file.
+     * @throws MatrixNetworkException If there was an error while processing the upload.
+     */
+    public String uploadMatrixFromFile(String path) throws MatrixNetworkException {
+        try {
+            var uri = new URI(this.bridge.getConfig().getServerURL() + "/_matrix/media/r0/upload?access_token=" + this.bridge.getAppservice().getRegistration().getAsToken());
+            var request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Content-Type", URLConnection.guessContentTypeFromName(path))
+                    .header("Content-Length", String.valueOf(new File(path).length()))
+                    .POST(HttpRequest.BodyPublisher.fromFile(Paths.get(path)))
+                    .timeout(Duration.ofSeconds(20))
+                    .build();
+
+            var response = this.httpClient.send(request, HttpResponse.BodyHandler.asString());
+            switch (response.statusCode()) {
+                case 200:
+                    return MatrixClientManager.gson.fromJson(response.body(), UploadResponse.class).contentUri;
+                case 429:
+                    // TODO Rate limiting support
+                default:
+                    throw new MatrixNetworkException("Non-200 status code while uploading file: " + response.statusCode());
+
+            }
+        } catch (URISyntaxException | InterruptedException | IOException e) {
+            throw new MatrixNetworkException(e);
         }
     }
 
