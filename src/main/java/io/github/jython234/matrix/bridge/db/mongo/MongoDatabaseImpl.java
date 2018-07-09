@@ -124,6 +124,21 @@ public class MongoDatabaseImpl extends BridgeDatabase {
     }
 
     @Override
+    public void putExtraData(String key, Serializable value) throws IOException {
+
+    }
+
+    @Override
+    public Serializable getExtraData(String key) throws IOException {
+        return null;
+    }
+
+    @Override
+    public void deleteExtraData(String key) throws IOException {
+
+    }
+
+    @Override
     public void close() throws IOException {
 
     }

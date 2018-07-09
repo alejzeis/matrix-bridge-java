@@ -53,7 +53,7 @@ public class LevelDBDatabaseImpl extends BridgeDatabase {
      * Database storage version. If it doesn't match our current one the database
      * will need to be upgraded.
      */
-    public static final byte DB_VERSION = 2;
+    public static final byte DB_VERSION = 3;
 
     private DB database;
 
@@ -186,6 +186,23 @@ public class LevelDBDatabaseImpl extends BridgeDatabase {
     @Override
     protected void deleteUsersDataField(User user, String key) throws IOException {
         this.putUser(user); // LevelDB doesn't support any specific updating so we'll just overwrite the entry.
+    }
+
+    @Override
+    public void putExtraData(String key, Serializable value) throws IOException {
+        this.database.put(ByteUtils.getExtraKeyValue(key), ByteUtils.serializeExtraData(value));
+    }
+
+    @Override
+    public Serializable getExtraData(String key) throws IOException {
+        var data = this.database.get(ByteUtils.getExtraKeyValue(key));
+
+        return data != null ? ByteUtils.deserializeExtraData(data) : null;
+    }
+
+    @Override
+    public void deleteExtraData(String key) {
+        this.database.delete(ByteUtils.getExtraKeyValue(key));
     }
 
     @Override

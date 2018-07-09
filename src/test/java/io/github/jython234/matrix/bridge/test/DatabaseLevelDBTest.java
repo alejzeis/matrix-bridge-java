@@ -168,6 +168,32 @@ class DatabaseLevelDBTest {
         assertEquals(testRoom3.getAdditionalData().get("aNewKey"), room3.getAdditionalData().get("aNewKey"));
     }
 
+    @Test
+    @DisplayName("Tests if the database can read/write/delete/update extra data.")
+    void testExtraData() throws IOException {
+        db.putExtraData("extra1", "hMMMM");
+        db.putExtraData("extra2", false);
+        db.putExtraData("extra3", 1234);
+
+        assertEquals("hMMMM", db.getExtraData("extra1"));
+        assertFalse((Boolean) db.getExtraData("extra2"));
+        assertEquals(1234, db.getExtraData("extra3"));
+
+        db.putExtraData("extra1", "changed");
+        db.putExtraData("extra2", true);
+        db.putExtraData("extra3", -4321);
+
+        assertEquals("changed", db.getExtraData("extra1"));
+        assertTrue((Boolean) db.getExtraData("extra2"));
+        assertEquals(-4321, db.getExtraData("extra3"));
+
+        db.deleteExtraData("extra1");
+
+        assertNull(db.getExtraData("extra1"));
+        assertNotNull(db.getExtraData("extra2"));
+        assertNotNull(db.getExtraData("extra3"));
+    }
+
     private void assertRoomCommon(Room room1, Room room2) {
         assertEquals(room1.id, room2.id);
         assertEquals(room1.getMatrixId(), room2.getMatrixId());

@@ -41,8 +41,23 @@ import java.util.Map;
  */
 public class ByteUtils {
 
-    public static final byte ROOM_KEY_TYPE_DATA = 0;
-    public static final byte ROOM_KEY_TYPE_MAPPING = 1;
+    private static final byte KEY_TYPE_USER = 0;
+    private static final byte KEY_TYPE_ROOM = 1;
+    private static final byte KEY_TYPE_EXTRA = 2;
+
+    private static final byte ROOM_KEY_TYPE_DATA = 10;
+    private static final byte ROOM_KEY_TYPE_MAPPING = 11;
+
+    private static byte[] getKeyValue(String id, byte type) {
+        var bytes = id.getBytes();
+        var bb = ByteBuffer.allocate(bytes.length + 3);
+
+        bb.put(type);
+        bb.putShort((short) bytes.length);
+        bb.put(bytes);
+
+        return bb.array();
+    }
 
     /**
      * Get the LevelDB key for a user, provided their ID.
@@ -50,19 +65,18 @@ public class ByteUtils {
      * @return The LevelDB Key.
      */
     public static byte[] getUserKeyValue(String id) {
-        var bytes = id.getBytes();
-        var bb = ByteBuffer.allocate(bytes.length + 2);
+        return getKeyValue(id, KEY_TYPE_USER);
+    }
 
-        bb.putShort((short) bytes.length);
-        bb.put(bytes);
-
-        return bb.array();
+    public static byte[] getExtraKeyValue(String id) {
+        return getKeyValue(id, KEY_TYPE_EXTRA);
     }
 
     public static byte[] getRoomKeyValue(String id, boolean isMatrixIdMapping) {
         var bytes = id.getBytes();
-        var bb = ByteBuffer.allocate(bytes.length + 3);
+        var bb = ByteBuffer.allocate(bytes.length + 4);
 
+        bb.put(KEY_TYPE_ROOM);
         bb.put(isMatrixIdMapping ? ROOM_KEY_TYPE_MAPPING : ROOM_KEY_TYPE_DATA);
         bb.putShort((short) bytes.length);
         bb.put(bytes);
@@ -120,6 +134,26 @@ public class ByteUtils {
             var data = (Map) objis.readObject();
             return new Room(db, id, matrixId, data);
         } catch(ClassNotFoundException | ClassCastException e) {
+            throw new IOException(e);
+        }
+    }
+
+    public static byte[] serializeExtraData(Serializable data) throws IOException {
+        var baos = new ByteArrayOutputStream();
+        var objos = new ObjectOutputStream(baos);
+
+        objos.writeObject(data);
+
+        return baos.toByteArray();
+    }
+
+    public static Serializable deserializeExtraData(byte[] bytes) throws IOException {
+        var bais = new ByteArrayInputStream(bytes);
+        var objis = new ObjectInputStream(bais);
+
+        try {
+            return (Serializable) objis.readObject();
+        } catch (ClassNotFoundException e) {
             throw new IOException(e);
         }
     }

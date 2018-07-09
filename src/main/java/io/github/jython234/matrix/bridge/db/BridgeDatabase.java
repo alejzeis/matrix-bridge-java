@@ -35,9 +35,14 @@ import java.io.IOException;
 import java.io.Serializable;
 
 /**
- * Interface which represents a supported database (Mongo or leveldb)
+ * Interface which represents a supported database (Mongo or leveldb). This
+ * is used to store User/Room data. It can also store additional extra data
+ * that the appservice implementation (your code) might need.
  *
  * @author jython234
+ * @see Room
+ * @see User
+ * @see #putExtraData(String, Serializable)
  */
 public abstract class BridgeDatabase implements Closeable {
     protected final MatrixBridge bridge;
@@ -213,4 +218,34 @@ public abstract class BridgeDatabase implements Closeable {
      * @see User#deleteDataField(String)
      */
     protected abstract void deleteUsersDataField(User user, String key) throws IOException;
+
+    /**
+     * Puts/updates some extra data into the database, usually used by the implementing appservice to store
+     * data that doesn't belong to a user or a room.
+     *
+     * The database implementation must somehow seperate this data
+     * from the rooms/user data, as we don't want conflicts with the keys.
+     *
+     * @param key The key of the data.
+     * @param value The value.
+     * @throws IOException If there is an error while putting the extra data in.
+     */
+    public abstract void putExtraData(String key, Serializable value) throws IOException;
+
+    /**
+     * Gets some extra data from the database. Returns <code>null</code> if it doesn't exist.
+     * @param key The key of the data.
+     * @return The value pair of the data, or <code>null</code> if not found.
+     * @throws IOException If there is an error while retrieving the data.
+     * @see #putExtraData(String, Serializable)
+     */
+    public abstract Serializable getExtraData(String key) throws IOException;
+
+    /**
+     * Deletes some extra data from the database.
+     * @param key The key of the data.
+     * @throws IOException If there is an error while deleting the extra data.
+     * @see #putExtraData(String, Serializable)
+     */
+    public abstract void deleteExtraData(String key) throws IOException;
 }
