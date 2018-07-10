@@ -216,7 +216,7 @@ public abstract class MatrixBridge {
         // Stub to be overridden
     }
 
-    public Logger getLogger() {
+    public Logger getBridgeLogger() {
         return this.logger;
     }
 

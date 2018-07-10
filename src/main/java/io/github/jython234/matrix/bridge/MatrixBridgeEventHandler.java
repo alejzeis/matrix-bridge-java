@@ -52,8 +52,8 @@ public class MatrixBridgeEventHandler implements EventHandler {
                 try {
                     method.invoke(this.bridge, matrixEvent);
                 } catch (IllegalAccessException | InvocationTargetException e) {
-                    this.bridge.getLogger().warn("Failed to process event \"" + matrixEvent.getType() + "\" " + matrixEvent.getClass().getName() + ": ");
-                    this.bridge.getLogger().warn(e.getClass().getName() + ": " + e.getMessage());
+                    this.bridge.getBridgeLogger().warn("Failed to process event \"" + matrixEvent.getType() + "\" " + matrixEvent.getClass().getName() + ": ");
+                    this.bridge.getBridgeLogger().warn(e.getClass().getName() + ": " + e.getMessage());
                     e.printStackTrace(System.err);
                 }
             }));
