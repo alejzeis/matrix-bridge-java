@@ -175,6 +175,22 @@ public abstract class MatrixBridge {
     public void start() {
         this.logger.info("Starting " + SOFTWARE + " v" + VERSION +"...");
 
+        // Code to run when the VM shuts down
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            logger.info("Running shutdown hook!");
+
+            try {
+                database.close();
+                logger.info("Closed database");
+            } catch (IOException e) {
+                logger.warn("Failed to close database on exit!");
+                logger.error("IOException: " + e.getMessage());
+                e.printStackTrace();
+            } finally {
+                onStop();
+            }
+        }));
+
         this.onStart();
         this.appservice.run(new String[]{"--server.port=" + this.config.getAppservicePort()});
     }
