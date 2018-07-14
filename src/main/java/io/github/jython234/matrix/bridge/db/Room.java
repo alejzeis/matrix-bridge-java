@@ -46,7 +46,7 @@ public class Room implements Serializable {
     /**
      * The Matrix room ID of this room.
      */
-    private String matrixId;
+    private String matrixId = "";
 
     protected transient final BridgeDatabase database;
 
