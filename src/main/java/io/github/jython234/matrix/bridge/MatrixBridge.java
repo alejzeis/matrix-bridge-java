@@ -56,7 +56,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public abstract class MatrixBridge {
     public static final String SOFTWARE = "matrix-bridge-java";
-    public static final String VERSION = "1.2.3-SNAPSHOT";
+    public static final String VERSION = "1.2.4-SNAPSHOT";
 
     private MatrixAppservice appservice;
 
