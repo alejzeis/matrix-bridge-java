@@ -56,7 +56,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public abstract class MatrixBridge {
     public static final String SOFTWARE = "matrix-bridge-java";
-    public static final String VERSION = "1.2.4-SNAPSHOT";
+    public static final String VERSION = "1.2.5-SNAPSHOT";
 
     private MatrixAppservice appservice;
 
@@ -217,12 +217,12 @@ public abstract class MatrixBridge {
      * a user may attempt to join a room with the address <code>#bridge_myroom</code>. This method would
      * then be called if the room doesn't exist.
      *
-     * If the room ends up being created, then the {@link MatrixBridge#onRoomAliasCreated(String)} method will be called.
+     * If the room ends up being created, then the {@link MatrixBridge#onRoomAliasCreated(String, String)} method will be called.
      * @param alias The room's alias.
      * @return A {@link CreateRoomRequest} instance or <code>null</code>. If you want the room to be created, and the user
      *         allowed to join, then return a {@link CreateRoomRequest} instance. If you don't want the room to be created,
      *         then return <code>null</code>.
-     * @see MatrixBridge#onRoomAliasCreated(String)
+     * @see MatrixBridge#onRoomAliasCreated(String, String)
      */
     protected CreateRoomRequest onRoomAliasQueried(String alias) {
         return null; // Do not create room by default
@@ -231,8 +231,9 @@ public abstract class MatrixBridge {
     /**
      * This method is called whenever a room is created after the {@link MatrixBridge#onRoomAliasQueried(String)} method.
      * @param alias The room's alias.
+     * @param id The room's matrix ID.
      */
-    protected void onRoomAliasCreated(String alias) {
+    protected void onRoomAliasCreated(String alias, String id) {
         // Stub to be overridden
     }
 

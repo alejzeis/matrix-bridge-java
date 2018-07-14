@@ -66,8 +66,8 @@ public class MatrixBridgeEventHandler implements EventHandler {
     }
 
     @Override
-    public void onRoomAliasCreated(String alias) {
-        this.bridge.onRoomAliasCreated(alias);
+    public void onRoomAliasCreated(String alias, String id) {
+        this.bridge.onRoomAliasCreated(alias, id);
     }
 
     @Override

@@ -176,7 +176,7 @@ public class MatrixClientManager {
      * @return The MXC URL of the uploaded file.
      * @throws MatrixNetworkException If there was an error while processing the upload.
      */
-    public String uploadMatrixFromFile(String path) throws MatrixNetworkException {
+    public synchronized String uploadMatrixFromFile(String path) throws MatrixNetworkException {
         try {
             var uri = new URI(this.bridge.getConfig().getServerURL() + "/_matrix/media/r0/upload?access_token=" + this.bridge.getAppservice().getRegistration().getAsToken());
             var request = HttpRequest.newBuilder()

@@ -89,6 +89,7 @@ public class MatrixUserClient {
                         throw new MatrixNetworkException("Bad JSON while registering BridgeUser");
                     }
                 default:
+                    this.client.bridge.getBridgeLogger().warn("Unknown response code while registering, " + response.statusCode() + ", " + response.body());
                     throw new MatrixNetworkException("Recieved unknown response code while registering BridgeUser: " + response.statusCode());
             }
         } catch (IOException | InterruptedException e) {
