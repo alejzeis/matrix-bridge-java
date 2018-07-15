@@ -44,6 +44,7 @@ import java.net.URLConnection;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -60,6 +61,8 @@ public class MatrixClientManager {
     protected final Logger logger;
     protected final MatrixBridge bridge;
 
+    protected final Random random;
+
     private HttpClient httpClient;
 
     private Map<String, MatrixUserClient> bridgeUsers = new ConcurrentHashMap<>(); // Map of 'bot created' users by the appservice
@@ -68,6 +71,8 @@ public class MatrixClientManager {
     public MatrixClientManager(MatrixBridge bridge) {
         this.logger = LoggerFactory.getLogger("MatrixBridge-Client");
         this.bridge = bridge;
+
+        this.random = new Random(this.bridge.getAppservice().getRegistration().getAsToken().hashCode());
 
         this.httpClient = HttpClient.newBuilder().executor(bridge.getAppservice().threadPoolTaskExecutor).build();
 

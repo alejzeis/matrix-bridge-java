@@ -49,8 +49,6 @@ import java.io.IOException;
  * @author jython234
  */
 public class MatrixUserClient {
-    private static Long nextTransactionId = 0L;
-
     private MatrixClientManager client;
     private String userId;
 
@@ -192,10 +190,7 @@ public class MatrixUserClient {
      * @see #joinRoom(String)
      */
     public HttpResponse sendMessage(String roomId, MessageContent content) throws MatrixNetworkException {
-        long txnId;
-        synchronized (nextTransactionId) {
-            txnId = nextTransactionId++;
-        }
+        var txnId = this.client.random.nextLong(); // Generate random Transaction ID
 
         var uri = this.client.getURI("rooms/" + roomId + "/send/m.room.message" + "/" + txnId, this.userId);
         var json = MatrixClientManager.gson.toJson(content);
