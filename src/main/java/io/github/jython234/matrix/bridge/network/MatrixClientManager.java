@@ -61,7 +61,7 @@ public class MatrixClientManager {
     protected final Logger logger;
     protected final MatrixBridge bridge;
 
-    protected final Random random;
+    protected final Random random = new Random();
 
     private HttpClient httpClient;
 
@@ -71,8 +71,6 @@ public class MatrixClientManager {
     public MatrixClientManager(MatrixBridge bridge) {
         this.logger = LoggerFactory.getLogger("MatrixBridge-Client");
         this.bridge = bridge;
-
-        this.random = new Random(this.bridge.getAppservice().getRegistration().getAsToken().hashCode());
 
         this.httpClient = HttpClient.newBuilder().executor(bridge.getAppservice().threadPoolTaskExecutor).build();
 
