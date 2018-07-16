@@ -24,34 +24,51 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-module matrixjava.bridge {
-    requires java.base;
-    requires jdk.incubator.httpclient;
+package io.github.jython234.matrix.bridge.network;
 
-    requires matrixjava.appservice;
+import jdk.incubator.http.HttpResponse;
 
-    requires slf4j.api;
-    requires snakeyaml;
+/**
+ * Represents the result of a network operation for Matrix.
+ *
+ * @author jython234
+ */
+public class MatrixNetworkResult<T> {
+    /**
+     * If the operation was successful or not.
+     */
+    public final boolean successful;
 
-    requires leveldbjni.all;
+    /**
+     * The raw HTTP response of the operation.
+     */
+    public final HttpResponse<String> httpResponse;
 
-    requires json.simple;
-    requires gson;
+    /**
+     * If the operation was not successful then this will contain
+     * the error information returned by the server.
+     *
+     * If the operation was successful then this will be <code>null</code>
+     *
+     * @see #successful
+     */
+    public final MatrixErrorResponse error;
 
-    requires spring.beans;
-    requires spring.core;
-    requires spring.context;
-    requires spring.web;
-    requires spring.webmvc;
-    requires spring.boot;
-    requires spring.boot.autoconfigure;
+    /**
+     * If the operation returned anything then this will contain that.
+     *
+     * For example, in {@link MatrixUserClient#getAvatarURL()} this would contain the Avatar URL.
+     */
+    public final T result;
 
-    exports io.github.jython234.matrix.bridge;
-    exports io.github.jython234.matrix.bridge.configuration;
-    exports io.github.jython234.matrix.bridge.db;
-    exports io.github.jython234.matrix.bridge.network;
-    exports io.github.jython234.matrix.bridge.network.registration;
-    exports io.github.jython234.matrix.bridge.network.profile;
-    exports io.github.jython234.matrix.bridge.network.room;
-    exports io.github.jython234.matrix.bridge.network.directory;
+    public MatrixNetworkResult(boolean successful, HttpResponse<String> response, MatrixErrorResponse errorResponse, T result) {
+        this.successful = successful;
+        this.httpResponse = response;
+        this.error = errorResponse;
+        this.result = result;
+    }
+
+    public MatrixNetworkResult(boolean successful, HttpResponse<String> response, T result) {
+        this(successful, response, successful ? null : MatrixClientManager.gson.fromJson(response.body(), MatrixErrorResponse.class), result);
+    }
 }

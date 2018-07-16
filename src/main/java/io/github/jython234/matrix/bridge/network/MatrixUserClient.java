@@ -29,15 +29,14 @@ package io.github.jython234.matrix.bridge.network;
 import io.github.jython234.matrix.appservice.Util;
 import io.github.jython234.matrix.appservice.event.room.message.MessageContent;
 import io.github.jython234.matrix.bridge.db.User;
+import io.github.jython234.matrix.bridge.network.directory.PutRoomAlias;
+import io.github.jython234.matrix.bridge.network.directory.RoomAliasInfo;
 import io.github.jython234.matrix.bridge.network.profile.SetAvatarURLRequest;
 import io.github.jython234.matrix.bridge.network.profile.SetDisplayNameRequest;
 import io.github.jython234.matrix.bridge.network.registration.UserExclusiveException;
 import io.github.jython234.matrix.bridge.network.registration.UserRegisterRequest;
 import io.github.jython234.matrix.bridge.network.room.InviteRequest;
 import jdk.incubator.http.HttpResponse;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import java.io.IOException;
 
@@ -73,18 +72,14 @@ public class MatrixUserClient {
                 case 200:
                     break;
                 case 400:
-                    JSONParser parser = new JSONParser();
-                    try {
-                        var obj = (JSONObject) parser.parse(response.body());
-                        if(obj.get("errcode").equals("M_USER_IN_USE")) {
+                    var error = MatrixClientManager.gson.fromJson(response.body(), MatrixErrorResponse.class);
+                    switch (error.errorCode) {
+                        case "M_USER_IN_USE":
                             return; // Silent ignore, as the user is already registered
-                        } else if(obj.get("errcode").equals("M_EXCLUSIVE")) {
+                        case "M_EXCLUSIVE":
                             throw new UserExclusiveException("Attempting to register a user outside of this appservice's exclusive zone!");
-                        } else {
-                            throw new MatrixNetworkException("Unknown error from server while registering BridgeUser: " + obj.get("errcode"));
-                        }
-                    } catch (ParseException e) {
-                        throw new MatrixNetworkException("Bad JSON while registering BridgeUser");
+                        default:
+                            throw new MatrixNetworkException("Unknown error from server while registering BridgeUser: " + error);
                     }
                 default:
                     this.client.bridge.getBridgeLogger().warn("Unknown response code while registering, " + response.statusCode() + ", " + response.body());
@@ -103,12 +98,18 @@ public class MatrixUserClient {
      * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
      * @throws MatrixNetworkException If there was any network exception while processing the request
      */
-    public HttpResponse<String> setDisplayName(String displayName) throws MatrixNetworkException {
+    public MatrixNetworkResult setDisplayName(String displayName) throws MatrixNetworkException {
         var uri = this.client.getURI("profile/" + this.userId + "/displayname", this.userId);
         var json = MatrixClientManager.gson.toJson(new SetDisplayNameRequest(displayName));
 
         try {
-            return this.client.sendRawPUTRequest(uri, json);
+            var response = this.client.sendRawPUTRequest(uri, json);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
         } catch (IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
@@ -122,14 +123,20 @@ public class MatrixUserClient {
      * @param url An MXC URL to the user's avatar.
      * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
      * @throws MatrixNetworkException If there was any network exception while processing the request
+     * @see MatrixClientManager#uploadMatrixFromFile(String)
      */
-    // TODO: Add link to resource API
-    public HttpResponse<String> setAvatarURL(String url) throws MatrixNetworkException {
+    public MatrixNetworkResult setAvatarURL(String url) throws MatrixNetworkException {
         var uri = this.client.getURI("profile/" + this.userId + "/avatar_url", this.userId);
         var json = MatrixClientManager.gson.toJson(new SetAvatarURLRequest(url));
 
         try {
-            return this.client.sendRawPUTRequest(uri, json);
+            var response = this.client.sendRawPUTRequest(uri, json);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
         } catch (IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
@@ -140,18 +147,17 @@ public class MatrixUserClient {
      * @return The user's displayname.
      * @throws MatrixNetworkException If there was any network exception while processing the request
      */
-    public String getDisplayName() throws MatrixNetworkException {
+    public MatrixNetworkResult<String> getDisplayName() throws MatrixNetworkException {
         var uri = this.client.getURI("profile/" + this.userId + "/displayname", this.userId);
         try {
             var response = this.client.sendRawGETRequest(uri);
-            if(response.statusCode() != 200) {
-                this.client.logger.warn("Non-200 status code for request " + uri);
-                this.client.logger.warn(response.body());
-
-                throw new MatrixNetworkException("Non-200 status code: " + response.statusCode());
+            switch (response.statusCode()) {
+                case 200:
+                    // SetDisplayNameRequest is the same format as getting  the displayname
+                    return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), SetDisplayNameRequest.class).displayName);
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
             }
-            // SetDisplayNameRequest is the same format as getting  the displayname
-            return MatrixClientManager.gson.fromJson(response.body(), SetDisplayNameRequest.class).displayName;
         } catch (IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
@@ -159,21 +165,21 @@ public class MatrixUserClient {
 
     /**
      * Get this user's avatar URL, which is an MXC URL.
-     * @return The user's MXC avatar URL.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     *          To get the Avatar URL, just use {@link MatrixNetworkResult#result}, the URL will be stored in that variable.
      * @throws MatrixNetworkException If there was any network exception while processing the request
      */
-    public String getAvatarURL() throws MatrixNetworkException {
+    public MatrixNetworkResult<String> getAvatarURL() throws MatrixNetworkException {
         var uri = this.client.getURI("profile/" + this.userId + "/avatar_url", this.userId);
         try {
             var response = this.client.sendRawGETRequest(uri);
-            if(response.statusCode() != 200) {
-                this.client.logger.warn("Non-200 status code for request " + uri);
-                this.client.logger.warn(response.body());
-
-                throw new MatrixNetworkException("Non-200 status code: " + response.statusCode());
+            switch (response.statusCode()) {
+                case 200:
+                    // SetAvatarURLRequest is the same format as getting the avatar URL
+                    return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), SetAvatarURLRequest.class).avatarURL);
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
             }
-            // SetAvatarURLRequest is the same format as getting the avatar URL
-            return MatrixClientManager.gson.fromJson(response.body(), SetAvatarURLRequest.class).avatarURL;
         } catch (IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
@@ -185,17 +191,23 @@ public class MatrixUserClient {
      * Sends a message to a Matrix room. The user must be joined to the room first!
      * @param roomId The matrix room ID of the room to send the message to.
      * @param content The Message content.
-     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
      * @throws MatrixNetworkException If there was an error while performing the network request.
      * @see #joinRoom(String)
      */
-    public HttpResponse sendMessage(String roomId, MessageContent content) throws MatrixNetworkException {
+    public MatrixNetworkResult sendMessage(String roomId, MessageContent content) throws MatrixNetworkException {
         var txnId = this.client.random.nextLong(); // Generate random Transaction ID
 
         var uri = this.client.getURI("rooms/" + roomId + "/send/m.room.message" + "/" + txnId, this.userId);
         var json = MatrixClientManager.gson.toJson(content);
         try {
-            return this.client.sendRawPUTRequest(uri, json);
+            var response = this.client.sendRawPUTRequest(uri, json);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
         } catch (IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
@@ -205,16 +217,24 @@ public class MatrixUserClient {
      * Invites another user to a room. You must be in the room to invite someone to it.
      * @param roomId The full room ID (no aliases) of the room that the user will be invited to.
      * @param userId The full UserID of the user to be invited.
-     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
-     *          It's recommended to check the response code and body as there might have been an error.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
      * @throws MatrixNetworkException If there was an error while performing the network request.
      */
-    public HttpResponse<String> invite(String roomId, String userId) throws MatrixNetworkException {
+    public MatrixNetworkResult invite(String roomId, String userId) throws MatrixNetworkException {
         var uri = this.client.getURI("rooms/" + roomId + "/invite", this.userId);
         var json = MatrixClientManager.gson.toJson(new InviteRequest(userId));
 
         try {
-            return this.client.sendRawPOSTRequest(uri, json);
+            var response = this.client.sendRawPOSTRequest(uri, json);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                case 403: // No permissions
+                case 429:
+                    // TODO: rate limiting
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
         } catch (IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
@@ -224,13 +244,22 @@ public class MatrixUserClient {
      * Joins this user to a Matrix room. The room must either be public, or someone
      * must have invited the user to the room.
      * @param roomIdOrAlias The matrix room ID of the room, OR a room alias of the room.
-     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
      * @throws MatrixNetworkException If there was an error while performing the network request.
      */
-    public HttpResponse<String> joinRoom(String roomIdOrAlias) throws MatrixNetworkException {
+    public MatrixNetworkResult joinRoom(String roomIdOrAlias) throws MatrixNetworkException {
         var uri = this.client.getURI("join/" + roomIdOrAlias, this.userId);
         try {
-            return this.client.sendRawPOSTRequest(uri);
+            var response = this.client.sendRawPOSTRequest(uri);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                case 403: // No permissions, maybe not invited?
+                case 429:
+                    // TODO: rate limiting
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
         } catch (IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
@@ -239,15 +268,91 @@ public class MatrixUserClient {
     /**
      * Leaves this user from a room.
      * @param roomId The full room ID (no aliases) of the room to be left.
-     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
-     *           It's recommended to check the response code and body as there might have been an error.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
      * @throws MatrixNetworkException If there was an error while performing the network request
      */
-    public HttpResponse<String> leaveRoom(String roomId) throws MatrixNetworkException {
+    public MatrixNetworkResult leaveRoom(String roomId) throws MatrixNetworkException {
         var uri = this.client.getURI("rooms/" + roomId + "/leave", this.userId);
         try {
-            return this.client.sendRawPOSTRequest(uri);
+            var response = this.client.sendRawPOSTRequest(uri);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                case 429:
+                    // TODO: rate limiting
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
         } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    // ROOM Aliases ----------------------------------------------------------------
+
+    /**
+     * Creates a new alias for a Matrix room.
+     * @param alias The alias to be set.
+     * @param roomId The room ID
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     * @throws MatrixNetworkException If there was an error while performing the network request
+     */
+    public MatrixNetworkResult createRoomAlias(String alias, String roomId) throws MatrixNetworkException {
+        var uri = this.client.getURI("directory/room/" + alias, this.userId);
+        try {
+            var response = this.client.sendRawPUTRequest(uri, MatrixClientManager.gson.toJson(new PutRoomAlias(roomId)));
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                case 409:
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch(IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
+     * Resolves a Matrix Room alias to a Matrix Room ID.
+     * @param alias The room alias.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     *          To get the actual room ID, use the {@link MatrixNetworkResult#result} value, which will contain the {@link RoomAliasInfo} object.
+     * @throws MatrixNetworkException If there was an error while performing the network request
+     */
+    public MatrixNetworkResult<RoomAliasInfo> getRoomIdFromAlias(String alias) throws MatrixNetworkException {
+        var uri = this.client.getURI("directory/room/" + alias, this.userId);
+        try {
+            var response = this.client.sendRawGETRequest(uri);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), RoomAliasInfo.class));
+                case 404: // Not found
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch(IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
+     * Deletes a Matrix Room alias.
+     * @param alias The room alias to be deleted.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     * @throws MatrixNetworkException If there was an error while performing the network request
+     */
+    public MatrixNetworkResult deleteRoomAlias(String alias) throws MatrixNetworkException {
+        var uri = this.client.getURI("directory/room/" + alias, this.userId);
+        try {
+            var response = this.client.sendRawDELETERequest(uri);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch(IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
     }

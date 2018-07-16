@@ -258,4 +258,14 @@ public class MatrixClientManager {
 
         return this.httpClient.send(request, HttpResponse.BodyHandler.asString());
     }
+
+    public HttpResponse<String> sendRawDELETERequest(URI uri) throws IOException, InterruptedException {
+        var request = HttpRequest.newBuilder()
+                .uri(uri)
+                .DELETE(HttpRequest.BodyPublisher.noBody())
+                .timeout(Duration.ofSeconds(20))
+                .build();
+
+        return this.httpClient.send(request, HttpResponse.BodyHandler.asString());
+    }
 }
