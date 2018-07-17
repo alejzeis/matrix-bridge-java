@@ -188,7 +188,7 @@ public class MatrixUserClient {
     // ROOMS --------------------------------------------------------------
 
     /**
-     * Sends a message to a Matrix room. The user must be joined to the room first!
+     * Sends any type of message to a Matrix room. The user must be joined to the room first!
      * @param roomId The matrix room ID of the room to send the message to.
      * @param content The Message content.
      * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
@@ -211,6 +211,40 @@ public class MatrixUserClient {
         } catch (IOException | InterruptedException e) {
             throw new MatrixNetworkException(e);
         }
+    }
+
+    /**
+     * Sends a simple text-only message to the Matrix room. The user must be joined to the room first!
+     *
+     * This method is simply a wrapper around {@link #sendMessage(String, MessageContent)}.
+     * @param roomId The matrix room ID of the room to send the message to.
+     * @param content The text content of the message.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     * @throws MatrixNetworkException If there was an error while performing the network request.
+     * @see #sendMessage(String, MessageContent)
+     */
+    public MatrixNetworkResult sendSimpleMessage(String roomId, String content) throws MatrixNetworkException {
+        var msg = new MessageContent.TextMessageContent();
+        msg.body = content;
+
+        return sendMessage(roomId, msg);
+    }
+
+    /**
+     * Sends a simple text-only "m.notice" message to the Matrix room. The user must be joined to the room first!
+     *
+     * This method is simply a wrapper around {@link #sendMessage(String, MessageContent)}.
+     * @param roomId The matrix room ID of the room to send the message to.
+     * @param content The text content of the message.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     * @throws MatrixNetworkException If there was an error while performing the network request.
+     * @see #sendMessage(String, MessageContent)
+     */
+    public MatrixNetworkResult sendSimpleNoticeMessage(String roomId, String content) throws MatrixNetworkException {
+        var msg = new MessageContent.NoticeMessageContent();
+        msg.body = content;
+
+        return sendMessage(roomId, msg);
     }
 
     /**
@@ -248,7 +282,8 @@ public class MatrixUserClient {
      * @throws MatrixNetworkException If there was an error while performing the network request.
      */
     public MatrixNetworkResult joinRoom(String roomIdOrAlias) throws MatrixNetworkException {
-        var uri = this.client.getURI("join/" + roomIdOrAlias, this.userId);
+        var escapedRoomIdOrAlias = roomIdOrAlias.replace("#", "%23"); // Need to escape the "#" or else the request will fail
+        var uri = this.client.getURI("join/" + escapedRoomIdOrAlias, this.userId);
         try {
             var response = this.client.sendRawPOSTRequest(uri);
             switch (response.statusCode()) {
