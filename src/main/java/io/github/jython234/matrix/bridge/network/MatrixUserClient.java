@@ -321,7 +321,8 @@ public class MatrixUserClient {
      * @throws MatrixNetworkException If there was an error while performing the network request
      */
     public MatrixNetworkResult<RoomAliasInfo> getRoomIdFromAlias(String alias) throws MatrixNetworkException {
-        var uri = this.client.getURI("directory/room/" + alias, this.userId);
+        var escapedAlias = alias.replace("#", "%23"); // Need to escape the "#" or else the request will fail
+        var uri = this.client.getURI("directory/room/" + escapedAlias, this.userId);
         try {
             var response = this.client.sendRawGETRequest(uri);
             switch (response.statusCode()) {
