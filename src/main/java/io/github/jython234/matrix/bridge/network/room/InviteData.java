@@ -24,38 +24,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-module matrixjava.bridge {
-    requires java.base;
-    requires jdk.incubator.httpclient;
+package io.github.jython234.matrix.bridge.network.room;
 
-    requires matrixjava.appservice;
+import com.google.gson.annotations.SerializedName;
 
-    requires slf4j.api;
-    requires snakeyaml;
+/**
+ * Internal Request Class for use with GSON.
+ *
+ * @author jython234
+ */
+public class InviteData {
+    @SerializedName("user_id")
+    public String userId;
 
-    requires leveldbjni.all;
-
-    requires json.simple;
-    requires gson;
-
-    requires spring.beans;
-    requires spring.core;
-    requires spring.context;
-    requires spring.web;
-    requires spring.webmvc;
-    requires spring.boot;
-    requires spring.boot.autoconfigure;
-
-    exports io.github.jython234.matrix.bridge;
-    exports io.github.jython234.matrix.bridge.configuration;
-    exports io.github.jython234.matrix.bridge.db;
-    exports io.github.jython234.matrix.bridge.network;
-    exports io.github.jython234.matrix.bridge.network.registration;
-    exports io.github.jython234.matrix.bridge.network.profile;
-    exports io.github.jython234.matrix.bridge.network.room;
-    exports io.github.jython234.matrix.bridge.network.directory;
-    exports io.github.jython234.matrix.bridge.network.error;
-    exports io.github.jython234.matrix.bridge.network.media;
-    exports io.github.jython234.matrix.bridge.network.typing;
-    exports io.github.jython234.matrix.bridge.network.presence;
+    public InviteData(String userId) {
+        this.userId = userId;
+    }
 }

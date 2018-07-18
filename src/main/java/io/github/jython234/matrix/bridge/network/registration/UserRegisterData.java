@@ -24,33 +24,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.network;
-
-import com.google.gson.annotations.SerializedName;
+package io.github.jython234.matrix.bridge.network.registration;
 
 /**
- * Represents a JSON object that contains error information returned
- * by the matrix homeserver.
+ * Internal Request Class for use with GSON.
  *
  * @author jython234
  */
-public class MatrixErrorResponse {
-    /**
-     * The Matrix error code for the type of error,
-     *
-     * Example: M_UNKNOWN
-     */
-    @SerializedName("errcode")
-    public String errorCode;
+public class UserRegisterData {
+    public String type = "m.login.application_service";
+    public String username;
 
-    /**
-     * The error message.
-     */
-    @SerializedName("error")
-    public String message;
-
-    @Override
-    public String toString() {
-        return this.errorCode + ": " + this.message;
+    public UserRegisterData(String username) {
+        this.username = username;
     }
 }

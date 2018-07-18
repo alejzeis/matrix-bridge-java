@@ -27,16 +27,20 @@
 package io.github.jython234.matrix.bridge.network;
 
 import io.github.jython234.matrix.appservice.Util;
+import io.github.jython234.matrix.appservice.event.presence.Presence;
 import io.github.jython234.matrix.appservice.event.room.message.MessageContent;
 import io.github.jython234.matrix.bridge.db.User;
-import io.github.jython234.matrix.bridge.network.directory.PutRoomAlias;
+import io.github.jython234.matrix.bridge.network.directory.RoomAliasData;
 import io.github.jython234.matrix.bridge.network.directory.RoomAliasInfo;
-import io.github.jython234.matrix.bridge.network.profile.SetAvatarURLRequest;
-import io.github.jython234.matrix.bridge.network.profile.SetDisplayNameRequest;
+import io.github.jython234.matrix.bridge.network.error.MatrixErrorData;
+import io.github.jython234.matrix.bridge.network.presence.RetrievedPresenceData;
+import io.github.jython234.matrix.bridge.network.presence.SetPresenceData;
+import io.github.jython234.matrix.bridge.network.profile.AvatarURLData;
+import io.github.jython234.matrix.bridge.network.profile.DisplaynameData;
 import io.github.jython234.matrix.bridge.network.registration.UserExclusiveException;
-import io.github.jython234.matrix.bridge.network.registration.UserRegisterRequest;
-import io.github.jython234.matrix.bridge.network.room.InviteRequest;
-import jdk.incubator.http.HttpResponse;
+import io.github.jython234.matrix.bridge.network.registration.UserRegisterData;
+import io.github.jython234.matrix.bridge.network.room.InviteData;
+import io.github.jython234.matrix.bridge.network.typing.TypingData;
 
 import java.io.IOException;
 
@@ -64,7 +68,7 @@ public class MatrixUserClient {
     }
 
     protected void register() throws MatrixNetworkException {
-        var json = MatrixClientManager.gson.toJson(new UserRegisterRequest(Util.getLocalpart(this.userId)));
+        var json = MatrixClientManager.gson.toJson(new UserRegisterData(Util.getLocalpart(this.userId)));
 
         try {
             var response = this.client.sendRawPOSTRequest(this.client.getURI("register", true), json);
@@ -72,7 +76,7 @@ public class MatrixUserClient {
                 case 200:
                     break;
                 case 400:
-                    var error = MatrixClientManager.gson.fromJson(response.body(), MatrixErrorResponse.class);
+                    var error = MatrixClientManager.gson.fromJson(response.body(), MatrixErrorData.class);
                     switch (error.errorCode) {
                         case "M_USER_IN_USE":
                             return; // Silent ignore, as the user is already registered
@@ -90,17 +94,115 @@ public class MatrixUserClient {
         }
     }
 
-    // PROFILE ------------------------------------------
+    // TYPING --------------------------------------------------------------
+
+    /**
+     * Set's this user's typing status for a specific room on Matrix.
+     *
+     * This sets a default of 30 seconds, so the user will show up as typing for 30 seconds.
+     * If you want a different amount, use {@link #setTyping(String, boolean, int)}
+     *
+     * @param roomId The Matrix room ID that this user is either typing/not typing in.
+     * @param typing If the user is typing or not.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     * @throws MatrixNetworkException If there was any network exception while processing the request
+     */
+    public MatrixNetworkResult setTyping(String roomId, boolean typing) throws MatrixNetworkException {
+        return setTyping(roomId, typing, 30000);
+    }
+
+    /**
+     * Set's this user's typing status for a specific room on Matrix.
+     * @param roomId The Matrix room ID that this user is either typing/not typing in.
+     * @param typing If the user is typing or not.
+     * @param duration If the user is typing, then this is how long the user should show as typing. If <code>typing</code> is false
+     *                 then this doesn't matter.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     * @throws MatrixNetworkException If there was any network exception while processing the request
+     */
+    public MatrixNetworkResult setTyping(String roomId, boolean typing, int duration) throws MatrixNetworkException {
+        if(duration < 0) throw new IllegalArgumentException("Duration must be positive!");
+
+        var uri = this.client.getURI("rooms/" + roomId + "/typing/" + this.userId, this.userId);
+        var json = MatrixClientManager.gson.toJson(new TypingData(typing, duration));
+
+        try {
+            var response = this.client.sendRawPUTRequest(uri, json);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                case 429: // TODO: ratelimiting
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    // PRESENCE ---------------------------------------------------------
+
+    /**
+     * Set's this user's presence on Matrix.
+     *
+     * Due to how bugged presence is on Matrix, you may need to call this
+     * repeatedly and it may not behave as you expect it to.
+     * @param presence The user's presence state.
+     * @param statusMessage A status message accompanying the presence state, for example: "Idle" or "Working Remotely"
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     * @throws MatrixNetworkException If there was any network exception while processing the request
+     */
+    public MatrixNetworkResult setPresence(Presence presence, String statusMessage) throws MatrixNetworkException {
+        var uri = this.client.getURI("presence/" + this.userId + "/status", this.userId);
+        var json = MatrixClientManager.gson.toJson(new SetPresenceData(presence, statusMessage));
+
+        try {
+            var response = this.client.sendRawPUTRequest(uri, json);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                case 429: // TODO: ratelimiting
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
+     * Get's this user's presence data on Matrix.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     *         The presence data is stored in {@link MatrixNetworkResult#result}
+     * @throws MatrixNetworkException If there was any network exception while processing the request
+     */
+    public MatrixNetworkResult<RetrievedPresenceData> getPresence() throws MatrixNetworkException {
+        var uri = this.client.getURI("presence/" + this.userId + "/status", this.userId);
+
+        try {
+            var response = this.client.sendRawGETRequest(uri);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), RetrievedPresenceData.class));
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    // PROFILE ----------------------------------------------------------
 
     /**
      * Set this user's Matrix display name.
      * @param displayName The new displayname.
-     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
      * @throws MatrixNetworkException If there was any network exception while processing the request
      */
     public MatrixNetworkResult setDisplayName(String displayName) throws MatrixNetworkException {
         var uri = this.client.getURI("profile/" + this.userId + "/displayname", this.userId);
-        var json = MatrixClientManager.gson.toJson(new SetDisplayNameRequest(displayName));
+        var json = MatrixClientManager.gson.toJson(new DisplaynameData(displayName));
 
         try {
             var response = this.client.sendRawPUTRequest(uri, json);
@@ -121,13 +223,13 @@ public class MatrixUserClient {
      *
      *
      * @param url An MXC URL to the user's avatar.
-     * @return An {@link HttpResponse} object containing the result of the request to the homeserver.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
      * @throws MatrixNetworkException If there was any network exception while processing the request
      * @see MatrixClientManager#uploadMatrixFromFile(String)
      */
     public MatrixNetworkResult setAvatarURL(String url) throws MatrixNetworkException {
         var uri = this.client.getURI("profile/" + this.userId + "/avatar_url", this.userId);
-        var json = MatrixClientManager.gson.toJson(new SetAvatarURLRequest(url));
+        var json = MatrixClientManager.gson.toJson(new AvatarURLData(url));
 
         try {
             var response = this.client.sendRawPUTRequest(uri, json);
@@ -144,7 +246,8 @@ public class MatrixUserClient {
 
     /**
      * Get this user's display name from the matrix user.
-     * @return The user's displayname.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     *          To get the Display Name, just use {@link MatrixNetworkResult#result}, the display name will be stored in that variable.
      * @throws MatrixNetworkException If there was any network exception while processing the request
      */
     public MatrixNetworkResult<String> getDisplayName() throws MatrixNetworkException {
@@ -153,8 +256,8 @@ public class MatrixUserClient {
             var response = this.client.sendRawGETRequest(uri);
             switch (response.statusCode()) {
                 case 200:
-                    // SetDisplayNameRequest is the same format as getting  the displayname
-                    return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), SetDisplayNameRequest.class).displayName);
+                    // DisplaynameData is the same format as getting  the displayname
+                    return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), DisplaynameData.class).displayName);
                 default:
                     return new MatrixNetworkResult<>(false, response, null);
             }
@@ -175,8 +278,8 @@ public class MatrixUserClient {
             var response = this.client.sendRawGETRequest(uri);
             switch (response.statusCode()) {
                 case 200:
-                    // SetAvatarURLRequest is the same format as getting the avatar URL
-                    return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), SetAvatarURLRequest.class).avatarURL);
+                    // AvatarURLData is the same format as getting the avatar URL
+                    return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), AvatarURLData.class).avatarURL);
                 default:
                     return new MatrixNetworkResult<>(false, response, null);
             }
@@ -256,7 +359,7 @@ public class MatrixUserClient {
      */
     public MatrixNetworkResult invite(String roomId, String userId) throws MatrixNetworkException {
         var uri = this.client.getURI("rooms/" + roomId + "/invite", this.userId);
-        var json = MatrixClientManager.gson.toJson(new InviteRequest(userId));
+        var json = MatrixClientManager.gson.toJson(new InviteData(userId));
 
         try {
             var response = this.client.sendRawPOSTRequest(uri, json);
@@ -335,7 +438,7 @@ public class MatrixUserClient {
     public MatrixNetworkResult createRoomAlias(String alias, String roomId) throws MatrixNetworkException {
         var uri = this.client.getURI("directory/room/" + alias, this.userId);
         try {
-            var response = this.client.sendRawPUTRequest(uri, MatrixClientManager.gson.toJson(new PutRoomAlias(roomId)));
+            var response = this.client.sendRawPUTRequest(uri, MatrixClientManager.gson.toJson(new RoomAliasData(roomId)));
             switch (response.statusCode()) {
                 case 200:
                     return new MatrixNetworkResult<>(true, response, null);

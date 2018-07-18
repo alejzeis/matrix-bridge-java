@@ -29,6 +29,7 @@ package io.github.jython234.matrix.bridge.network;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import io.github.jython234.matrix.bridge.MatrixBridge;
+import io.github.jython234.matrix.bridge.network.media.MediaUploadData;
 import jdk.incubator.http.HttpClient;
 import jdk.incubator.http.HttpRequest;
 import jdk.incubator.http.HttpResponse;
@@ -37,7 +38,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLConnection;
@@ -193,7 +193,7 @@ public class MatrixClientManager {
             var response = this.httpClient.send(request, HttpResponse.BodyHandler.asString());
             switch (response.statusCode()) {
                 case 200:
-                    return MatrixClientManager.gson.fromJson(response.body(), UploadResponse.class).contentUri;
+                    return MatrixClientManager.gson.fromJson(response.body(), MediaUploadData.class).contentUri;
                 case 429:
                     // TODO Rate limiting support
                 default:

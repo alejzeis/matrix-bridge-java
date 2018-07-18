@@ -24,24 +24,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.network.directory;
+package io.github.jython234.matrix.bridge.network.error;
 
 import com.google.gson.annotations.SerializedName;
 
 /**
- * JSON payload used when setting a room's alias.
+ * Represents a JSON object that contains error information returned
+ * by the matrix homeserver.
  *
  * @author jython234
- * @see io.github.jython234.matrix.bridge.network.MatrixUserClient#createRoomAlias(String, String)
  */
-public class PutRoomAlias {
+public class MatrixErrorData {
     /**
-     * The matrix room ID.
+     * The Matrix error code for the type of error,
+     *
+     * Example: M_UNKNOWN
      */
-    @SerializedName("room_id")
-    public String roomId;
+    @SerializedName("errcode")
+    public String errorCode;
 
-    public PutRoomAlias(String roomId) {
-        this.roomId = roomId;
+    /**
+     * The error message.
+     */
+    @SerializedName("error")
+    public String message;
+
+    @Override
+    public String toString() {
+        return this.errorCode + ": " + this.message;
     }
 }

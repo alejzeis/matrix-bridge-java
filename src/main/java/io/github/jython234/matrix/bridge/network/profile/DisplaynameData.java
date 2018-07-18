@@ -24,7 +24,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.network.room;
+package io.github.jython234.matrix.bridge.network.profile;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -33,11 +33,11 @@ import com.google.gson.annotations.SerializedName;
  *
  * @author jython234
  */
-public class InviteRequest {
-    @SerializedName("user_id")
-    public String userId;
+public class DisplaynameData {
+    @SerializedName("displayname")
+    public String displayName;
 
-    public InviteRequest(String userId) {
-        this.userId = userId;
+    public DisplaynameData(String displayName) {
+        this.displayName = displayName;
     }
 }

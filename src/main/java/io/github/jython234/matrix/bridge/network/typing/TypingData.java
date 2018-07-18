@@ -24,18 +24,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.network.registration;
+package io.github.jython234.matrix.bridge.network.typing;
 
 /**
- * Internal Request Class for use with GSON.
+ * Used with GSON to send typing data for a user.
  *
  * @author jython234
  */
-public class UserRegisterRequest {
-    public String type = "m.login.application_service";
-    public String username;
+public class TypingData {
+    public boolean typing;
+    public int timeout;
 
-    public UserRegisterRequest(String username) {
-        this.username = username;
+    public TypingData(boolean typing, int timeout) {
+        this.typing = typing;
+        this.timeout = timeout;
     }
 }

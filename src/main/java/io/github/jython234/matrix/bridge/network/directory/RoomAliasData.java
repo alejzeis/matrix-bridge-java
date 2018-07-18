@@ -24,20 +24,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.network;
+package io.github.jython234.matrix.bridge.network.directory;
 
 import com.google.gson.annotations.SerializedName;
 
 /**
- * Internal Request Class for use with GSON.
+ * JSON payload used when setting a room's alias.
  *
  * @author jython234
+ * @see io.github.jython234.matrix.bridge.network.MatrixUserClient#createRoomAlias(String, String)
  */
-public class UploadResponse {
-    @SerializedName("content_uri")
-    public String contentUri;
+public class RoomAliasData {
+    /**
+     * The matrix room ID.
+     */
+    @SerializedName("room_id")
+    public String roomId;
 
-    public UploadResponse(String contentUri) {
-        this.contentUri = contentUri;
+    public RoomAliasData(String roomId) {
+        this.roomId = roomId;
     }
 }

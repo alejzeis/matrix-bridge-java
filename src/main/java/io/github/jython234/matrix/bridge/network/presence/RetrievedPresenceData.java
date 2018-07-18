@@ -24,20 +24,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.network.profile;
+package io.github.jython234.matrix.bridge.network.presence;
 
 import com.google.gson.annotations.SerializedName;
+import io.github.jython234.matrix.appservice.event.presence.Presence;
+import org.springframework.lang.NonNull;
 
 /**
- * Internal Request Class for use with GSON.
- *
- * @author jython234
+ * Represents retrieved presence data from the homeserver for a user, used
+ * by
  */
-public class SetAvatarURLRequest {
-    @SerializedName("avatar_url")
-    public String avatarURL;
+public class RetrievedPresenceData {
+    @NonNull
+    public Presence presence;
 
-    public SetAvatarURLRequest(String avatarURL) {
-        this.avatarURL = avatarURL;
-    }
+    @SerializedName("last_active_ago")
+    public int lastActiveAgo;
+
+    @SerializedName("status_msg")
+    public String statusMessage;
+
+    @SerializedName("currently_active")
+    public boolean currentlyActive;
 }

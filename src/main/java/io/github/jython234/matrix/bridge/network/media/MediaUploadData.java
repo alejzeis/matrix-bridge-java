@@ -24,7 +24,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.network.profile;
+package io.github.jython234.matrix.bridge.network.media;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -33,11 +33,11 @@ import com.google.gson.annotations.SerializedName;
  *
  * @author jython234
  */
-public class SetDisplayNameRequest {
-    @SerializedName("displayname")
-    public String displayName;
+public class MediaUploadData {
+    @SerializedName("content_uri")
+    public String contentUri;
 
-    public SetDisplayNameRequest(String displayName) {
-        this.displayName = displayName;
+    public MediaUploadData(String contentUri) {
+        this.contentUri = contentUri;
     }
 }

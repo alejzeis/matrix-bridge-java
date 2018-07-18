@@ -26,6 +26,7 @@
  */
 package io.github.jython234.matrix.bridge.network;
 
+import io.github.jython234.matrix.bridge.network.error.MatrixErrorData;
 import jdk.incubator.http.HttpResponse;
 
 /**
@@ -52,7 +53,7 @@ public class MatrixNetworkResult<T> {
      *
      * @see #successful
      */
-    public final MatrixErrorResponse error;
+    public final MatrixErrorData error;
 
     /**
      * If the operation returned anything then this will contain that.
@@ -61,7 +62,7 @@ public class MatrixNetworkResult<T> {
      */
     public final T result;
 
-    public MatrixNetworkResult(boolean successful, HttpResponse<String> response, MatrixErrorResponse errorResponse, T result) {
+    public MatrixNetworkResult(boolean successful, HttpResponse<String> response, MatrixErrorData errorResponse, T result) {
         this.successful = successful;
         this.httpResponse = response;
         this.error = errorResponse;
@@ -69,6 +70,6 @@ public class MatrixNetworkResult<T> {
     }
 
     public MatrixNetworkResult(boolean successful, HttpResponse<String> response, T result) {
-        this(successful, response, successful ? null : MatrixClientManager.gson.fromJson(response.body(), MatrixErrorResponse.class), result);
+        this(successful, response, successful ? null : MatrixClientManager.gson.fromJson(response.body(), MatrixErrorData.class), result);
     }
 }
