@@ -40,6 +40,8 @@ import io.github.jython234.matrix.bridge.network.profile.DisplaynameData;
 import io.github.jython234.matrix.bridge.network.registration.UserExclusiveException;
 import io.github.jython234.matrix.bridge.network.registration.UserRegisterData;
 import io.github.jython234.matrix.bridge.network.room.InviteData;
+import io.github.jython234.matrix.bridge.network.room.JoinedMembersData;
+import io.github.jython234.matrix.bridge.network.room.KickBanData;
 import io.github.jython234.matrix.bridge.network.typing.TypingData;
 
 import java.io.IOException;
@@ -175,6 +177,7 @@ public class MatrixUserClient {
      * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
      *         The presence data is stored in {@link MatrixNetworkResult#result}
      * @throws MatrixNetworkException If there was any network exception while processing the request
+     * @see RetrievedPresenceData
      */
     public MatrixNetworkResult<RetrievedPresenceData> getPresence() throws MatrixNetworkException {
         var uri = this.client.getURI("presence/" + this.userId + "/status", this.userId);
@@ -426,6 +429,74 @@ public class MatrixUserClient {
         }
     }
 
+    // Internal method used to kick or ban a person as the code is quite similar
+    private MatrixNetworkResult kickOrBan(String roomId, String userId, String reason, boolean isKick) throws MatrixNetworkException {
+        var uri = this.client.getURI("rooms/" + roomId + "/" + (isKick ? "kick" : "ban"), this.userId);
+        var json = MatrixClientManager.gson.toJson(new KickBanData(reason, userId));
+        try {
+            var response = this.client.sendRawPOSTRequest(uri, json);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                case 403: // No permission
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
+     * Kicks a user from a room. The user must have sufficient permissions in the room or else the
+     * request will fail.
+     * @param roomId The full room ID of the room.
+     * @param userId The full user ID of the user to be kicked.
+     * @param reason A reason for the kick.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     * @throws MatrixNetworkException If there was an error while performing the network request
+     */
+    public MatrixNetworkResult kick(String roomId, String userId, String reason) throws MatrixNetworkException {
+        return this.kickOrBan(roomId, userId, reason, true);
+    }
+
+    /**
+     * Bans a user from a room. The user must have sufficient permissions in the room or else the
+     * request will fail.
+     * @param roomId The full room ID of the room.
+     * @param userId The full user ID of the user to be banned.
+     * @param reason A reason for the ban.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     * @throws MatrixNetworkException If there was an error while performing the network request
+     */
+    public MatrixNetworkResult ban(String roomId, String userId, String reason) throws MatrixNetworkException {
+        return this.kickOrBan(roomId, userId, reason, false);
+    }
+
+    /**
+     * Gets a map of members of a specific room.
+     * @param roomId The full room ID of the room.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     *         The data will be stored in {@link MatrixNetworkResult#result}.
+     * @throws MatrixNetworkException If there was an error while performing the network request
+     * @see JoinedMembersData
+     */
+    public MatrixNetworkResult<JoinedMembersData> getRoomMembers(String roomId) throws MatrixNetworkException {
+        var uri = this.client.getURI("rooms/" + roomId + "/joined_members", this.userId);
+        try {
+            var response = this.client.sendRawGETRequest(uri);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), JoinedMembersData.class));
+                case 403: // Not a member of the room
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch(IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
     // ROOM Aliases ----------------------------------------------------------------
 
     /**
@@ -457,6 +528,7 @@ public class MatrixUserClient {
      * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
      *          To get the actual room ID, use the {@link MatrixNetworkResult#result} value, which will contain the {@link RoomAliasInfo} object.
      * @throws MatrixNetworkException If there was an error while performing the network request
+     * @see RoomAliasInfo
      */
     public MatrixNetworkResult<RoomAliasInfo> getRoomIdFromAlias(String alias) throws MatrixNetworkException {
         var escapedAlias = alias.replace("#", "%23"); // Need to escape the "#" or else the request will fail
