@@ -73,7 +73,7 @@ public class MatrixClientManager {
         this.logger = LoggerFactory.getLogger("MatrixBridge-Client");
         this.bridge = bridge;
 
-        this.httpClient = HttpClient.newBuilder().executor(bridge.getAppservice().threadPoolTaskExecutor).build();
+        this.httpClient = HttpClient.newBuilder().build();
 
         try {
             bridgeClient = new MatrixUserClient(this, "@" + this.bridge.getAppservice().getRegistration().getSenderLocalpart() + ":" + this.bridge.getConfig().getMatrixDomain());
@@ -186,7 +186,6 @@ public class MatrixClientManager {
             var request = HttpRequest.newBuilder()
                     .uri(uri)
                     .header("Content-Type", URLConnection.guessContentTypeFromName(path))
-                    .header("Content-Length", String.valueOf(new File(path).length()))
                     .POST(HttpRequest.BodyPublisher.fromFile(Paths.get(path)))
                     .timeout(Duration.ofSeconds(20))
                     .build();
@@ -198,6 +197,7 @@ public class MatrixClientManager {
                 case 429:
                     // TODO Rate limiting support
                 default:
+                    System.out.println(response.body());
                     throw new MatrixNetworkException("Non-200 status code while uploading file: " + response.statusCode());
 
             }
