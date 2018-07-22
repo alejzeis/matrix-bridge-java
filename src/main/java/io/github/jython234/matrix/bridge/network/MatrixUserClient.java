@@ -268,6 +268,27 @@ public class MatrixUserClient {
     }
 
     /**
+     * Get a user's display name from their matrix user ID.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     *          To get the Display Name, just use {@link MatrixNetworkResult#result}, the display name will be stored in that variable.
+     * @throws MatrixNetworkException If there was any network exception while processing the request
+     */
+    public MatrixNetworkResult<String> getDisplayName(String userId) throws MatrixNetworkException {
+        var uri = this.client.getURI("profile/" + userId + "/displayname", this.userId);
+        try {
+            var response = this.client.sendRawGETRequest(uri);
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), DisplaynameData.class).displayName);
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
      * Get this user's avatar URL, which is an MXC URL.
      * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
      *          To get the Avatar URL, just use {@link MatrixNetworkResult#result}, the URL will be stored in that variable.
@@ -280,6 +301,27 @@ public class MatrixUserClient {
             switch (response.statusCode()) {
                 case 200:
                     // AvatarURLData is the same format as getting the avatar URL
+                    return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), AvatarURLData.class).avatarURL);
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
+     * Get a user's avatar URL, which is an MXC URL based on their matrix user ID.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     *          To get the Avatar URL, just use {@link MatrixNetworkResult#result}, the URL will be stored in that variable.
+     * @throws MatrixNetworkException If there was any network exception while processing the request
+     */
+    public MatrixNetworkResult<String> getAvatarURL(String userId) throws MatrixNetworkException {
+        var uri = this.client.getURI("profile/" + userId + "/avatar_url", this.userId);
+        try {
+            var response = this.client.sendRawGETRequest(uri);
+            switch (response.statusCode()) {
+                case 200:
                     return new MatrixNetworkResult<>(true, response, MatrixClientManager.gson.fromJson(response.body(), AvatarURLData.class).avatarURL);
                 default:
                     return new MatrixNetworkResult<>(false, response, null);

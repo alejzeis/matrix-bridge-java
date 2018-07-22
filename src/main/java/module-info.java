@@ -38,6 +38,8 @@ module matrixjava.bridge {
     requires json.simple;
     requires gson;
 
+    requires commons.io;
+
     requires spring.beans;
     requires spring.core;
     requires spring.context;

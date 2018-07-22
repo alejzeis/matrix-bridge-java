@@ -33,6 +33,7 @@ import io.github.jython234.matrix.bridge.network.media.MediaUploadData;
 import jdk.incubator.http.HttpClient;
 import jdk.incubator.http.HttpRequest;
 import jdk.incubator.http.HttpResponse;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -201,6 +202,17 @@ public class MatrixClientManager {
 
             }
         } catch (URISyntaxException | InterruptedException | IOException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    public synchronized void downloadMatrixFile(String mxcURL, String path) throws MatrixNetworkException {
+        var mxcURLExtracted = mxcURL.replaceAll("mxc://", "");
+        try {
+            var uri = new URI(this.bridge.getConfig().getServerURL() + "/_matrix/media/v1/download/" + mxcURLExtracted);
+
+            FileUtils.copyURLToFile(uri.toURL(), new File(path));
+        } catch (URISyntaxException | IOException e) {
             throw new MatrixNetworkException(e);
         }
     }
