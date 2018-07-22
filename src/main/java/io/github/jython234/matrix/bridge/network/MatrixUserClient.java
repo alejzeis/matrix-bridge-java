@@ -39,9 +39,7 @@ import io.github.jython234.matrix.bridge.network.profile.AvatarURLData;
 import io.github.jython234.matrix.bridge.network.profile.DisplaynameData;
 import io.github.jython234.matrix.bridge.network.registration.UserExclusiveException;
 import io.github.jython234.matrix.bridge.network.registration.UserRegisterData;
-import io.github.jython234.matrix.bridge.network.room.InviteData;
-import io.github.jython234.matrix.bridge.network.room.JoinedMembersData;
-import io.github.jython234.matrix.bridge.network.room.KickBanData;
+import io.github.jython234.matrix.bridge.network.room.*;
 import io.github.jython234.matrix.bridge.network.typing.TypingData;
 
 import java.io.IOException;
@@ -497,6 +495,52 @@ public class MatrixUserClient {
         }
     }
 
+    /**
+     * Sets a room's name. The user must have permission to do so, or else the request will fail.
+     * @param roomId The matrix room ID of the room.
+     * @param name The new room name.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     * @throws MatrixNetworkException If there was an error while performing the network request
+     */
+    public MatrixNetworkResult setRoomName(String roomId, String name) throws MatrixNetworkException {
+        var uri = this.client.getURI("rooms/" + roomId + "/state/m.room.name", this.userId);
+        try {
+            var response = this.client.sendRawPUTRequest(uri, MatrixClientManager.gson.toJson(new RoomNameData(name)));
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                case 403: // Not a member of the room
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch(IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    /**
+     * Sets a room's topic. The user must have permission to do so, or else the request will fail.
+     * @param roomId The matrix room ID of the room.
+     * @param topic The new room topic.
+     * @return A {@link MatrixNetworkResult} object containing information about the results of the request, such as failure or success.
+     * @throws MatrixNetworkException If there was an error while performing the network request
+     */
+    public MatrixNetworkResult setRoomTopic(String roomId, String topic) throws MatrixNetworkException {
+        var uri = this.client.getURI("rooms/" + roomId + "/state/m.room.topic", this.userId);
+        try {
+            var response = this.client.sendRawPUTRequest(uri, MatrixClientManager.gson.toJson(new RoomTopicData(topic)));
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
+                case 403: // Not a member of the room
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch(IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
     // ROOM Aliases ----------------------------------------------------------------
 
     /**
@@ -507,13 +551,29 @@ public class MatrixUserClient {
      * @throws MatrixNetworkException If there was an error while performing the network request
      */
     public MatrixNetworkResult createRoomAlias(String alias, String roomId) throws MatrixNetworkException {
-        var uri = this.client.getURI("directory/room/" + alias, this.userId);
+        var aliasEscaped = alias.replaceAll("#", "%23");
+        var uri = this.client.getURI("directory/room/" + aliasEscaped, this.userId);
         try {
             var response = this.client.sendRawPUTRequest(uri, MatrixClientManager.gson.toJson(new RoomAliasData(roomId)));
             switch (response.statusCode()) {
                 case 200:
                     return new MatrixNetworkResult<>(true, response, null);
                 case 409:
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch(IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    public MatrixNetworkResult setRoomCanonicalAlias(String alias, String roomId) throws MatrixNetworkException {
+        var uri = this.client.getURI("rooms/" + roomId + "/state/m.room.canonical_alias", this.userId);
+        try {
+            var response = this.client.sendRawPUTRequest(uri, MatrixClientManager.gson.toJson(new CanonicalRoomAliasData(alias)));
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
                 default:
                     return new MatrixNetworkResult<>(false, response, null);
             }
@@ -531,7 +591,7 @@ public class MatrixUserClient {
      * @see RoomAliasInfo
      */
     public MatrixNetworkResult<RoomAliasInfo> getRoomIdFromAlias(String alias) throws MatrixNetworkException {
-        var escapedAlias = alias.replace("#", "%23"); // Need to escape the "#" or else the request will fail
+        var escapedAlias = alias.replaceAll("#", "%23"); // Need to escape the "#" or else the request will fail
         var uri = this.client.getURI("directory/room/" + escapedAlias, this.userId);
         try {
             var response = this.client.sendRawGETRequest(uri);
