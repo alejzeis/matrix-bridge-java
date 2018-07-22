@@ -509,7 +509,6 @@ public class MatrixUserClient {
             switch (response.statusCode()) {
                 case 200:
                     return new MatrixNetworkResult<>(true, response, null);
-                case 403: // Not a member of the room
                 default:
                     return new MatrixNetworkResult<>(false, response, null);
             }
@@ -532,7 +531,21 @@ public class MatrixUserClient {
             switch (response.statusCode()) {
                 case 200:
                     return new MatrixNetworkResult<>(true, response, null);
-                case 403: // Not a member of the room
+                default:
+                    return new MatrixNetworkResult<>(false, response, null);
+            }
+        } catch(IOException | InterruptedException e) {
+            throw new MatrixNetworkException(e);
+        }
+    }
+
+    public MatrixNetworkResult setRoomPowerLevels(String roomId, PowerLevelsData powerLevels) throws MatrixNetworkException {
+        var uri = this.client.getURI("rooms/" + roomId + "/state/m.room.power_levels", this.userId);
+        try {
+            var response = this.client.sendRawPUTRequest(uri, MatrixClientManager.gson.toJson(powerLevels));
+            switch (response.statusCode()) {
+                case 200:
+                    return new MatrixNetworkResult<>(true, response, null);
                 default:
                     return new MatrixNetworkResult<>(false, response, null);
             }
