@@ -56,7 +56,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public abstract class MatrixBridge {
     public static final String SOFTWARE = "matrix-bridge-java";
-    public static final String VERSION = "1.4.6-SNAPSHOT";
+    public static final String VERSION = "1.4.7-SNAPSHOT";
 
     private MatrixAppservice appservice;
 
@@ -161,7 +161,10 @@ public abstract class MatrixBridge {
     private void setupDatabase() {
         switch (this.config.getDbInfo().type) {
             case MONGO:
-                this.database = new MongoDatabaseImpl(this, (BridgeConfig.MongoDBInfo) this.config.getDbInfo());
+                this.logger.error("MongoDB databases are currently not implemented! Sorry.");
+                System.exit(1);
+
+                //this.database = new MongoDatabaseImpl(this, (BridgeConfig.MongoDBInfo) this.config.getDbInfo());
                 break;
             case LEVELDB:
                 this.database = new LevelDBDatabaseImpl(this, (BridgeConfig.LevelDBInfo) this.config.getDbInfo());
