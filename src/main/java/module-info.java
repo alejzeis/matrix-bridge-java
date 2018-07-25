@@ -33,8 +33,6 @@ module matrixjava.bridge {
     requires slf4j.api;
     requires snakeyaml;
 
-    requires leveldbjni.all;
-
     requires json.simple;
     requires gson;
 
@@ -51,13 +49,6 @@ module matrixjava.bridge {
     exports io.github.jython234.matrix.bridge;
     exports io.github.jython234.matrix.bridge.configuration;
     exports io.github.jython234.matrix.bridge.db;
-    exports io.github.jython234.matrix.bridge.network;
-    exports io.github.jython234.matrix.bridge.network.registration;
-    exports io.github.jython234.matrix.bridge.network.profile;
-    exports io.github.jython234.matrix.bridge.network.room;
-    exports io.github.jython234.matrix.bridge.network.directory;
-    exports io.github.jython234.matrix.bridge.network.error;
-    exports io.github.jython234.matrix.bridge.network.media;
-    exports io.github.jython234.matrix.bridge.network.typing;
-    exports io.github.jython234.matrix.bridge.network.presence;
+    exports io.github.jython234.matrix.bridge.event;
+    exports io.github.jython234.matrix.bridge.event.core;
 }

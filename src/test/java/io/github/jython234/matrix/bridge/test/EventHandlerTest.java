@@ -29,8 +29,8 @@ package io.github.jython234.matrix.bridge.test;
 import io.github.jython234.matrix.appservice.Util;
 import io.github.jython234.matrix.appservice.event.TypingMatrixEvent;
 import io.github.jython234.matrix.bridge.MatrixBridge;
-import io.github.jython234.matrix.bridge.MatrixBridgeEventHandler;
-import io.github.jython234.matrix.bridge.MatrixEventHandler;
+import io.github.jython234.matrix.bridge.AppserviceEventHandler;
+import io.github.jython234.matrix.bridge.event.EventHandlerMethod;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -62,7 +62,7 @@ class EventHandlerTest {
             assertEquals(1, this.eventHandlers.get(TypingMatrixEvent.class).size());
             assertEquals("onTypingEvent", this.eventHandlers.get(TypingMatrixEvent.class).get(0).getName());
 
-            var handler = new MatrixBridgeEventHandler(this);
+            var handler = new AppserviceEventHandler(this);
             var event = new TypingMatrixEvent();
             event.roomId = "test";
 
@@ -82,7 +82,7 @@ class EventHandlerTest {
 
         }
 
-        @MatrixEventHandler
+        @EventHandlerMethod
         public void onTypingEvent(TypingMatrixEvent event) {
             // Our little dummy event handler to be found
             assertNotNull(event);

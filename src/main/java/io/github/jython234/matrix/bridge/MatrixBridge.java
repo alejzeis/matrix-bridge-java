@@ -28,14 +28,12 @@ package io.github.jython234.matrix.bridge;
 
 import io.github.jython234.matrix.appservice.MatrixAppservice;
 import io.github.jython234.matrix.appservice.Util;
-import io.github.jython234.matrix.appservice.event.MatrixEvent;
 import io.github.jython234.matrix.appservice.exception.KeyNotFoundException;
 import io.github.jython234.matrix.appservice.network.CreateRoomRequest;
+import io.github.jython234.matrix.appservice.network.CreateUserRequest;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfigLoader;
-import io.github.jython234.matrix.bridge.db.BridgeDatabase;
-import io.github.jython234.matrix.bridge.db.leveldb.LevelDBDatabaseImpl;
-import io.github.jython234.matrix.bridge.db.mongo.MongoDatabaseImpl;
+import io.github.jython234.matrix.bridge.event.EventManager;
 import io.github.jython234.matrix.bridge.network.MatrixClientManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,11 +41,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * The base class for any Matrix bridge.
@@ -56,7 +49,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public abstract class MatrixBridge {
     public static final String SOFTWARE = "matrix-bridge-java";
-    public static final String VERSION = "1.4.7-SNAPSHOT";
+    public static final String VERSION = "2.0.0-SNAPSHOT";
 
     private MatrixAppservice appservice;
 
@@ -64,9 +57,8 @@ public abstract class MatrixBridge {
     private String configDirectory;
     private BridgeConfig config;
 
-    private BridgeDatabase database;
-
-    protected Map<Class<? extends MatrixEvent>, List<Method>> eventHandlers;
+    private EventManager eventManager;
+    private ShutdownHandler shutdownHandler;
 
     private MatrixClientManager clientManager;
 
@@ -76,32 +68,18 @@ public abstract class MatrixBridge {
      *                        Make sure the program has permissions to read and write in the directory.
      */
     public MatrixBridge(String configDirectory) {
-        this(configDirectory, null);
-    }
-
-    /**
-     * Create a new instance with the specified information.
-     * @param configDirectory Location where all the bridge's configuration files should be located.
-     *                        Make sure the program has permissions to read and write in the directory.
-     * @param eventHandler A custom Matrix Event handler to receive events directly from the appservice.
-     *                     In most cases, this is not needed, so please use the other constructor instead.
-     * @see MatrixBridgeEventHandler
-     * @see io.github.jython234.matrix.appservice.event.EventHandler
-     */
-    public MatrixBridge(String configDirectory, MatrixBridgeEventHandler eventHandler) {
         this.logger = LoggerFactory.getLogger("MatrixBridge");
         this.configDirectory = configDirectory;
         this.loadConfig();
 
         this.appservice = new MatrixAppservice(configDirectory + File.separator + "registration.yml", this.config.getServerURL());
-        this.appservice.setEventHandler(eventHandler == null ? new MatrixBridgeEventHandler(this) : eventHandler);
+        this.appservice.setEventHandler(new AppserviceEventHandler(this));
 
-        this.eventHandlers = new ConcurrentHashMap<>();
-        this.findEventHandlers();
-
-        this.setupDatabase();
+        this.eventManager = new EventManager(this);
+        this.eventManager.registerEventHandler(new InternalBridgeEventHandler(this));
 
         this.clientManager = new MatrixClientManager(this);
+        this.shutdownHandler = new ShutdownHandler(this);
     }
 
     private void loadConfig() {
@@ -135,43 +113,6 @@ public abstract class MatrixBridge {
         }
     }
 
-    private void findEventHandlers() {
-        // Finds event handling methods in this instance's subclass with Reflection
-        final var methods = this.getClass().getDeclaredMethods();
-        for(var method: methods) {
-            for(var annotation: method.getDeclaredAnnotations()) {
-                if(annotation instanceof MatrixEventHandler
-                        && method.getParameterTypes().length > 0
-                        && MatrixEvent.class.isAssignableFrom(method.getParameterTypes()[0])) {
-
-                    // We found an event handler method! Now we add it to our map
-                    final var type = method.getParameterTypes()[0].asSubclass(MatrixEvent.class);
-                    if(this.eventHandlers.containsKey(type)) {
-                        this.eventHandlers.get(type).add(method);
-                    } else {
-                        final List<Method> list = new CopyOnWriteArrayList<>();
-                        list.add(method);
-                        this.eventHandlers.put(type, list);
-                    }
-                }
-            }
-        }
-    }
-
-    private void setupDatabase() {
-        switch (this.config.getDbInfo().type) {
-            case MONGO:
-                this.logger.error("MongoDB databases are currently not implemented! Sorry.");
-                System.exit(1);
-
-                //this.database = new MongoDatabaseImpl(this, (BridgeConfig.MongoDBInfo) this.config.getDbInfo());
-                break;
-            case LEVELDB:
-                this.database = new LevelDBDatabaseImpl(this, (BridgeConfig.LevelDBInfo) this.config.getDbInfo());
-                break;
-        }
-    }
-
     /**
      * Start the bridge and it's underlying appservice.
      */
@@ -179,24 +120,7 @@ public abstract class MatrixBridge {
         this.logger.info("Starting " + SOFTWARE + " v" + VERSION +"...");
 
         // Code to run when the VM shuts down
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                this.setName("ShutdownThread");
-
-                logger.info("Running shutdown hook!");
-                try {
-                    database.close();
-                    logger.info("Closed database");
-                } catch (IOException e) {
-                    logger.warn("Failed to close database on exit!");
-                    logger.error("IOException: " + e.getMessage());
-                    e.printStackTrace();
-                } finally {
-                    onStop();
-                }
-            }
-        });
+        Runtime.getRuntime().addShutdownHook(shutdownHandler);
 
         this.onStart();
         this.appservice.run(new String[]{"--server.port=" + this.config.getAppservicePort()});
@@ -220,24 +144,29 @@ public abstract class MatrixBridge {
      * a user may attempt to join a room with the address <code>#bridge_myroom</code>. This method would
      * then be called if the room doesn't exist.
      *
-     * If the room ends up being created, then the {@link MatrixBridge#onRoomAliasCreated(String, String)} method will be called.
+     * If the room ends up being created, then a {@link io.github.jython234.matrix.bridge.event.core.BridgedRoomCreatedEvent} event will be thrown.
+     *
+     * <strong>NOTICE: </strong> if you chose to create the room make sure {@link CreateRoomRequest#roomAliasName} is the room's <strong>localpart</strong>,
+     * which can be determined by using {@link Util#getLocalpart(String)}
+     *
      * @param alias The room's alias.
      * @return A {@link CreateRoomRequest} instance or <code>null</code>. If you want the room to be created, and the user
      *         allowed to join, then return a {@link CreateRoomRequest} instance. If you don't want the room to be created,
      *         then return <code>null</code>.
-     * @see MatrixBridge#onRoomAliasCreated(String, String)
      */
     protected CreateRoomRequest onRoomAliasQueried(String alias) {
         return null; // Do not create room by default
     }
 
     /**
-     * This method is called whenever a room is created after the {@link MatrixBridge#onRoomAliasQueried(String)} method.
-     * @param alias The room's alias.
-     * @param id The room's matrix ID.
+     * This method is called whenever someone attempts to query a user that resides in the application service's
+     * exclusive user space, and the user doesn't exist.
+     * @param userId The user's matrix User ID.
+     * @return A {@link CreateUserRequest} instance or <code>null</code> If you want the user to be created, return a {@link CreateUserRequest} instance.
+     *          If you do not want the user created, then simply return <code>null</code>.
      */
-    protected void onRoomAliasCreated(String alias, String id) {
-        // Stub to be overridden
+    protected CreateUserRequest onUserQueried(String userId) {
+        return null; // Do not create by default
     }
 
     public Logger getBridgeLogger() {
@@ -252,11 +181,15 @@ public abstract class MatrixBridge {
         return this.appservice;
     }
 
-    public BridgeDatabase getDatabase() {
-        return this.database;
-    }
-
     public MatrixClientManager getClientManager() {
         return clientManager;
+    }
+
+    public EventManager getEventManager() {
+        return eventManager;
+    }
+
+    public ShutdownHandler getShutdownHandler() {
+        return this.shutdownHandler;
     }
 }

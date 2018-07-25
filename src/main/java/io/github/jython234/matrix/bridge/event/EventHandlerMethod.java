@@ -24,7 +24,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.github.jython234.matrix.bridge.event;
+
+import io.github.jython234.matrix.bridge.MatrixBridge;
+
+import java.lang.annotation.*;
+
 /**
- * The LevelDB database implementation classes.
+ * Flags a method as an event handler for a Matrix Event.
+ *
+ * To use this, simply create a method that takes a parameter of the
+ * specific {@link Event} you want to handle, and
+ * mark it with this annotation. This must be done in your class that extends {@link MatrixBridge}.
+ *
+ * The method will be called whenever that Matrix Event is received.
+ *
+ * @author jython234
  */
-package io.github.jython234.matrix.bridge.db.leveldb;
+@Documented
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+public @interface EventHandlerMethod {
+}

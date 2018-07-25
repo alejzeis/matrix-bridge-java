@@ -6,7 +6,5 @@ matrixDomain: "localhost"
 appservicePort: 9000
 
 db:
-  type: "leveldb"
-  directory: "matrix-bridge-java-testdb"
-  compression: true
-  cacheSize: 100
+  url: "mongo://localhost"
+  database: "testDb"

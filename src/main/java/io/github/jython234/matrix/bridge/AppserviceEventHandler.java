@@ -28,8 +28,11 @@ package io.github.jython234.matrix.bridge;
 
 import io.github.jython234.matrix.appservice.event.EventHandler;
 import io.github.jython234.matrix.appservice.event.MatrixEvent;
+import io.github.jython234.matrix.appservice.event.TypingMatrixEvent;
 import io.github.jython234.matrix.appservice.network.CreateRoomRequest;
 import io.github.jython234.matrix.appservice.network.CreateUserRequest;
+import io.github.jython234.matrix.bridge.event.core.BridgedRoomCreatedEvent;
+import io.github.jython234.matrix.bridge.event.core.BridgedUserProvisionedEvent;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -38,25 +41,18 @@ import java.lang.reflect.InvocationTargetException;
  *
  * @author jython234
  */
-public class MatrixBridgeEventHandler implements EventHandler {
+class AppserviceEventHandler implements EventHandler {
     private MatrixBridge bridge;
 
-    public MatrixBridgeEventHandler(MatrixBridge bridge) {
+    AppserviceEventHandler(MatrixBridge bridge) {
         this.bridge = bridge;
     }
 
     @Override
     public void onMatrixEvent(MatrixEvent matrixEvent) {
-        if(this.bridge.eventHandlers.containsKey(matrixEvent.getClass())) {
-            this.bridge.eventHandlers.get(matrixEvent.getClass()).forEach((method -> {
-                try {
-                    method.invoke(this.bridge, matrixEvent);
-                } catch (IllegalAccessException | InvocationTargetException e) {
-                    this.bridge.getBridgeLogger().warn("Failed to process event \"" + matrixEvent.getType() + "\" " + matrixEvent.getClass().getName() + ": ");
-                    this.bridge.getBridgeLogger().warn(e.getClass().getName() + ": " + e.getMessage());
-                    e.printStackTrace(System.err);
-                }
-            }));
+        // TODO: translate events
+        if(matrixEvent instanceof TypingMatrixEvent) {
+
         }
     }
 
@@ -67,16 +63,16 @@ public class MatrixBridgeEventHandler implements EventHandler {
 
     @Override
     public void onRoomAliasCreated(String alias, String id) {
-        this.bridge.onRoomAliasCreated(alias, id);
+        this.bridge.getEventManager().throwEvent(new BridgedRoomCreatedEvent(alias, id));
     }
 
     @Override
-    public CreateUserRequest onUserAliasQueried(String s) {
-        return null;
+    public CreateUserRequest onUserAliasQueried(String userId) {
+        return this.bridge.onUserQueried(userId);
     }
 
     @Override
     public void onUserProvisioned(String localpart) {
-
+        this.bridge.getEventManager().throwEvent(new BridgedUserProvisionedEvent(localpart));
     }
 }
