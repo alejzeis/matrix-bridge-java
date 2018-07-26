@@ -33,10 +33,13 @@ module matrixjava.bridge {
     requires slf4j.api;
     requires snakeyaml;
 
-    requires json.simple;
     requires gson;
 
     requires commons.io;
+
+    requires mongodb.driver.core;
+    requires org.mongodb.driver.async.client;
+    requires bson;
 
     requires spring.beans;
     requires spring.core;
@@ -51,4 +54,5 @@ module matrixjava.bridge {
     exports io.github.jython234.matrix.bridge.db;
     exports io.github.jython234.matrix.bridge.event;
     exports io.github.jython234.matrix.bridge.event.core;
+    exports io.github.jython234.matrix.bridge.event.user;
 }

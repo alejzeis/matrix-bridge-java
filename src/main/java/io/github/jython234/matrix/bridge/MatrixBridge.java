@@ -26,6 +26,9 @@
  */
 package io.github.jython234.matrix.bridge;
 
+import com.mongodb.async.SingleResultCallback;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.result.DeleteResult;
 import io.github.jython234.matrix.appservice.MatrixAppservice;
 import io.github.jython234.matrix.appservice.Util;
 import io.github.jython234.matrix.appservice.exception.KeyNotFoundException;
@@ -33,17 +36,21 @@ import io.github.jython234.matrix.appservice.network.CreateRoomRequest;
 import io.github.jython234.matrix.appservice.network.CreateUserRequest;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfigLoader;
+import io.github.jython234.matrix.bridge.db.BridgeDatabase;
 import io.github.jython234.matrix.bridge.event.EventManager;
-import io.github.jython234.matrix.bridge.network.MatrixClientManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 /**
- * The base class for any Matrix bridge.
+ * The base class for any Matrix bridge. Implementing bridges should extend this class.
  *
  * @author jython234
  */
@@ -55,12 +62,18 @@ public abstract class MatrixBridge {
 
     private Logger logger;
     private String configDirectory;
+
     private BridgeConfig config;
+    private BridgeDatabase database;
 
     private EventManager eventManager;
     private ShutdownHandler shutdownHandler;
 
-    private MatrixClientManager clientManager;
+    final Map<String, MatrixRoom> matrixRooms = new HashMap<>();
+    final Map<String, MatrixUser> matrixUsers = new HashMap<>();
+
+    private final Map<String, RemoteRoom> remoteRooms = new HashMap<>();
+    private final Map<String, RemoteUser> remoteUsers = new HashMap<>();
 
     /**
      * Create a new instance with the specified information.
@@ -68,9 +81,11 @@ public abstract class MatrixBridge {
      *                        Make sure the program has permissions to read and write in the directory.
      */
     public MatrixBridge(String configDirectory) {
-        this.logger = LoggerFactory.getLogger("MatrixBridge");
+        this.logger = LoggerFactory.getLogger("Bridge");
         this.configDirectory = configDirectory;
         this.loadConfig();
+
+        this.database = new BridgeDatabase(this);
 
         this.appservice = new MatrixAppservice(configDirectory + File.separator + "registration.yml", this.config.getServerURL());
         this.appservice.setEventHandler(new AppserviceEventHandler(this));
@@ -78,8 +93,10 @@ public abstract class MatrixBridge {
         this.eventManager = new EventManager(this);
         this.eventManager.registerEventHandler(new InternalBridgeEventHandler(this));
 
-        this.clientManager = new MatrixClientManager(this);
         this.shutdownHandler = new ShutdownHandler(this);
+
+        this.syncRemote();
+        this.syncMatrix();
     }
 
     private void loadConfig() {
@@ -113,11 +130,172 @@ public abstract class MatrixBridge {
         }
     }
 
+    private void syncRemote() {
+        // All we have to do is just find every room and user in the database and add it to the map
+
+        this.database.getRemoteUsers().find().forEach(document -> {
+            if(!document.containsKey("id")) {
+                this.logger.warn("Found document in RemoteUsers collection that does not have an \"id\", skipping...");
+
+            } else {
+                var id = document.get("id", String.class);
+                var user = new RemoteUser(id, this, document);
+
+                synchronized (this.remoteUsers) {
+                    this.remoteUsers.put(id, user);
+                }
+            }
+        }, (result, throwable) -> {
+            if(throwable != null) {
+                this.getBridgeLogger().error("Error while attempting to retrieve RemoteUsers from database!");
+                this.getBridgeLogger().error(throwable.getClass().getName() + ": " + throwable.getMessage());
+                throwable.printStackTrace();
+            }
+        });
+
+        this.database.getRemoteRooms().find().forEach(document -> {
+            if(!document.containsKey("id")) {
+                this.logger.warn("Found document in RemoteRooms collection that does not have an \"id\", skipping...");
+
+            } else {
+                var id = document.get("id", String.class);
+                var room = new RemoteRoom(id, this, document);
+
+                synchronized (this.remoteRooms) {
+                    this.remoteRooms.put(id, room);
+                }
+            }
+        }, (result, throwable) -> {
+            if(throwable != null) {
+                this.getBridgeLogger().error("Error while attempting to retrieve RemoteRooms from database!");
+                this.getBridgeLogger().error(throwable.getClass().getName() + ": " + throwable.getMessage());
+                throwable.printStackTrace();
+            }
+        });
+    }
+
+    private void syncMatrix() {
+        // First get the rooms and users from the database
+
+        this.database.getMatrixUsers().find().forEach(document -> {
+            if(!document.containsKey("id")) {
+                this.logger.warn("Found document in MatrixUsers collection that does not have an \"id\", skipping...");
+
+            } else {
+                var id = document.get("id", String.class);
+                var user = new MatrixUser(id, this, document);
+
+                synchronized (this.matrixUsers) {
+                    this.matrixUsers.put(id, user);
+                }
+            }
+        }, (result, throwable) -> {
+            if(throwable != null) {
+                this.getBridgeLogger().error("Error while attempting to retrieve MatrixUsers from database!");
+                this.getBridgeLogger().error(throwable.getClass().getName() + ": " + throwable.getMessage());
+                throwable.printStackTrace();
+            }
+        });
+
+        this.database.getMatrixRooms().find().forEach(document -> {
+            if(!document.containsKey("id")) {
+                this.logger.warn("Found document in MatrixRooms collection that does not have an \"id\", skipping...");
+
+            } else {
+                var id = document.get("id", String.class);
+                var room = new MatrixRoom(id, this, document);
+
+                synchronized (this.matrixRooms) {
+                    this.matrixRooms.put(id, room);
+                }
+            }
+        }, (result, throwable) -> {
+            if(throwable != null) {
+                this.getBridgeLogger().error("Error while attempting to retrieve MatrixRooms from database!");
+                this.getBridgeLogger().error(throwable.getClass().getName() + ": " + throwable.getMessage());
+                throwable.printStackTrace();
+            }
+        });
+
+        // TODO: Query homeserver for data and check
+    }
+
+    public final MatrixUser getMatrixUser(String userId) {
+        synchronized (this.matrixUsers) {
+            return this.matrixUsers.get(userId);
+        }
+    }
+
+    public final MatrixRoom getMatrixRoom(String roomId) {
+        synchronized (this.matrixRooms) {
+            return this.matrixRooms.get(roomId);
+        }
+    }
+
+    public final RemoteUser getRemoteUser(String id) {
+        synchronized (this.remoteUsers) {
+            return this.remoteUsers.get(id);
+        }
+    }
+
+    public final CompletableFuture addRemoteUser(RemoteUser user) {
+        var future = new CompletableFuture<>();
+
+        this.database.getRemoteUsers().insertOne(user.getDatabaseData(), (aVoid, throwable) -> {
+            if(throwable != null) {
+                this.getBridgeLogger().error("Failed to add RemoteUser to database.");
+                this.getBridgeLogger().error(throwable.getClass().getName() + ": " + throwable.getMessage());
+                throwable.printStackTrace();
+            } else {
+                synchronized (this.remoteUsers) {
+                    this.remoteUsers.put(user.id, user);
+                }
+
+                future.complete(null);
+            }
+        });
+
+        return future;
+    }
+
+    public final RemoteRoom getRemoteRoom(String id) {
+        synchronized (this.remoteRooms) {
+            return this.remoteRooms.get(id);
+        }
+    }
+
+    public final CompletableFuture addRemoteRoom(RemoteRoom room) {
+        var future = new CompletableFuture<>();
+
+        this.database.getRemoteRooms().insertOne(room.getDatabaseData(), (aVoid, throwable) -> {
+            if(throwable != null) {
+                this.getBridgeLogger().error("Failed to add RemoteRoom to database.");
+                this.getBridgeLogger().error(throwable.getClass().getName() + ": " + throwable.getMessage());
+                throwable.printStackTrace();
+            } else {
+                synchronized (this.remoteRooms) {
+                    this.remoteRooms.put(room.id, room);
+                }
+
+                future.complete(null);
+            }
+        });
+
+        return future;
+    }
+
+    public final void deleteRemoteRoom(RemoteRoom room, SingleResultCallback<DeleteResult> resultCallback) {
+        this.database.getRemoteRooms().deleteOne(Filters.eq("id", room.id), resultCallback);
+    }
+
     /**
      * Start the bridge and it's underlying appservice.
      */
-    public void start() {
-        this.logger.info("Starting " + SOFTWARE + " v" + VERSION +"...");
+    public final void start() {
+        this.logger.info("Running " + SOFTWARE + " v" + VERSION +"...");
+
+        // Close the database on shutdown
+        this.shutdownHandler.registerShutdownTask(() -> this.database.close());
 
         // Code to run when the VM shuts down
         Runtime.getRuntime().addShutdownHook(shutdownHandler);
@@ -169,27 +347,27 @@ public abstract class MatrixBridge {
         return null; // Do not create by default
     }
 
-    public Logger getBridgeLogger() {
+    public final Logger getBridgeLogger() {
         return this.logger;
     }
 
-    public BridgeConfig getConfig() {
+    public final BridgeConfig getConfig() {
         return this.config;
     }
 
-    public MatrixAppservice getAppservice() {
+    public final MatrixAppservice getAppservice() {
         return this.appservice;
     }
 
-    public MatrixClientManager getClientManager() {
-        return clientManager;
-    }
-
-    public EventManager getEventManager() {
+    public final EventManager getEventManager() {
         return eventManager;
     }
 
-    public ShutdownHandler getShutdownHandler() {
+    public final ShutdownHandler getShutdownHandler() {
         return this.shutdownHandler;
+    }
+
+    public final BridgeDatabase getDatabase() {
+        return database;
     }
 }
