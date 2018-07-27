@@ -24,24 +24,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge;
+package io.github.jython234.matrix.bridge.network;
 
-import com.mongodb.async.SingleResultCallback;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Updates;
-import com.mongodb.client.result.UpdateResult;
-import org.bson.Document;
+/**
+ * General purpose exception thrown for any errors
+ * during Matrix network operations.
+ *
+ * @author jython234
+ */
+public class MatrixNetworkException extends Exception {
 
-public class RemoteUser extends User {
-
-    RemoteUser(String id, MatrixBridge bridge, Document data) {
-        super(id, bridge, data);
+    public MatrixNetworkException(String e) {
+        super(e);
     }
 
-    @Override
-    public void updateData(String key, Object value, SingleResultCallback<UpdateResult> callback) {
-        super.updateData(key, value, callback);
-
-        this.bridge.getDatabase().getRemoteUsers().updateOne(Filters.eq("id", this.id), Updates.set(key, value), callback);
+    public MatrixNetworkException(Exception e) {
+        super(e);
     }
 }

@@ -37,8 +37,7 @@ module matrixjava.bridge {
 
     requires commons.io;
 
-    requires mongodb.driver.core;
-    requires org.mongodb.driver.async.client;
+    requires org.mongodb.driver.core;
     requires bson;
 
     requires spring.beans;
@@ -48,11 +47,13 @@ module matrixjava.bridge {
     requires spring.webmvc;
     requires spring.boot;
     requires spring.boot.autoconfigure;
+    requires org.mongodb.driver.async.client;
 
     exports io.github.jython234.matrix.bridge;
     exports io.github.jython234.matrix.bridge.configuration;
     exports io.github.jython234.matrix.bridge.db;
     exports io.github.jython234.matrix.bridge.event;
     exports io.github.jython234.matrix.bridge.event.core;
-    exports io.github.jython234.matrix.bridge.event.user;
+    exports io.github.jython234.matrix.bridge.network;
+    exports io.github.jython234.matrix.bridge.network.response;
 }

@@ -24,24 +24,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge;
+package io.github.jython234.matrix.bridge.network;
 
-import com.mongodb.async.SingleResultCallback;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Updates;
-import com.mongodb.client.result.UpdateResult;
-import org.bson.Document;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import io.github.jython234.matrix.bridge.MatrixBridge;
+import io.github.jython234.matrix.bridge.network.response.VersionsResponse;
 
-public class RemoteUser extends User {
+import java.util.concurrent.CompletableFuture;
 
-    RemoteUser(String id, MatrixBridge bridge, Document data) {
-        super(id, bridge, data);
+/**
+ * Handles networking for sending requests to the Matrix homeserver.
+ *
+ * @author jython234
+ */
+public class MatrixClient {
+    static final Gson GSON;
+
+    static {
+        GSON = new GsonBuilder().create();
     }
 
-    @Override
-    public void updateData(String key, Object value, SingleResultCallback<UpdateResult> callback) {
-        super.updateData(key, value, callback);
+    private MatrixBridge bridge;
+    private HTTPClient client;
 
-        this.bridge.getDatabase().getRemoteUsers().updateOne(Filters.eq("id", this.id), Updates.set(key, value), callback);
+    public MatrixClient(MatrixBridge bridge) {
+        this.bridge = bridge;
+
+        this.client = new JDKHttpClient(); // Replace if necessary TODO
+    }
+
+    public CompletableFuture<MatrixNetworkResult<VersionsResponse>> queryServerForSupportedVersions() {
+        var future = new CompletableFuture<MatrixNetworkResult<VersionsResponse>>();
+        var url = this.bridge.getConfig().getServerURL() + "/_matrix/client/versions";
+
+        this.client.sendGET(url).thenAccept(result -> {
+            if(result.statusCode != 200) {
+                future.complete(new MatrixNetworkResult<>(false, result.statusCode, null));
+            } else {
+                var versions = GSON.fromJson(result.body, VersionsResponse.class);
+                future.complete(new MatrixNetworkResult<>(true, result.statusCode, versions));
+            }
+        });
+
+        return future;
     }
 }

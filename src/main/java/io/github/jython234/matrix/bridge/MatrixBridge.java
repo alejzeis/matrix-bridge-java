@@ -38,15 +38,18 @@ import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfigLoader;
 import io.github.jython234.matrix.bridge.db.BridgeDatabase;
 import io.github.jython234.matrix.bridge.event.EventManager;
+import io.github.jython234.matrix.bridge.network.MatrixClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
@@ -65,6 +68,7 @@ public abstract class MatrixBridge {
 
     private BridgeConfig config;
     private BridgeDatabase database;
+    private MatrixClient client;
 
     private EventManager eventManager;
     private ShutdownHandler shutdownHandler;
@@ -95,8 +99,28 @@ public abstract class MatrixBridge {
 
         this.shutdownHandler = new ShutdownHandler(this);
 
+        this.client = new MatrixClient(this);
+
         this.syncRemote();
         this.syncMatrix();
+    }
+
+    private void queryServer() {
+        this.logger.info("Attempting to query Matrix server for version information...");
+
+        try {
+            var result = this.client.queryServerForSupportedVersions().get();
+            if(!result.successful) {
+                this.logger.error("Failed to query Matrix server, error code: " + result.statusCode);
+                System.exit(1);
+            } else {
+                this.logger.info("The Matrix Server at " + this.config.getServerURL() + " supports the following Matrix protocol versions: " + Arrays.toString(result.result.versions));
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            this.logger.error("Failed to retrieve version information! An exception was thrown, " + e.getClass().getName());
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     private void loadConfig() {
@@ -132,6 +156,8 @@ public abstract class MatrixBridge {
 
     private void syncRemote() {
         // All we have to do is just find every room and user in the database and add it to the map
+
+        this.logger.info("Syncing Remote rooms/users from database...");
 
         this.database.getRemoteUsers().find().forEach(document -> {
             if(!document.containsKey("id")) {
@@ -176,6 +202,8 @@ public abstract class MatrixBridge {
 
     private void syncMatrix() {
         // First get the rooms and users from the database
+
+        this.logger.info("Syncing Matrix rooms/users from database...");
 
         this.database.getMatrixUsers().find().forEach(document -> {
             if(!document.containsKey("id")) {
@@ -258,6 +286,10 @@ public abstract class MatrixBridge {
         return future;
     }
 
+    public final void deleteRemoteUser(RemoteUser user, SingleResultCallback<DeleteResult> resultCallback) {
+        this.database.getRemoteUsers().deleteOne(Filters.eq("id", user.id), resultCallback);
+    }
+
     public final RemoteRoom getRemoteRoom(String id) {
         synchronized (this.remoteRooms) {
             return this.remoteRooms.get(id);
@@ -299,6 +331,8 @@ public abstract class MatrixBridge {
 
         // Code to run when the VM shuts down
         Runtime.getRuntime().addShutdownHook(shutdownHandler);
+
+        this.queryServer();
 
         this.onStart();
         this.appservice.run(new String[]{"--server.port=" + this.config.getAppservicePort()});

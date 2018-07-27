@@ -24,24 +24,48 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge;
+package io.github.jython234.matrix.bridge.network;
 
-import com.mongodb.async.SingleResultCallback;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Updates;
-import com.mongodb.client.result.UpdateResult;
-import org.bson.Document;
+import org.springframework.http.HttpMethod;
 
-public class RemoteUser extends User {
+import java.io.File;
+import java.util.concurrent.CompletableFuture;
 
-    RemoteUser(String id, MatrixBridge bridge, Document data) {
-        super(id, bridge, data);
+/**
+ * Represents an HTTP client that can send different requests
+ * to the Matrix homeserver.
+ *
+ * @author jython234
+ */
+interface HTTPClient {
+    default CompletableFuture<HTTPResult> sendGET(String url) {
+        return this.sendRequest(HttpMethod.GET, url);
     }
 
-    @Override
-    public void updateData(String key, Object value, SingleResultCallback<UpdateResult> callback) {
-        super.updateData(key, value, callback);
-
-        this.bridge.getDatabase().getRemoteUsers().updateOne(Filters.eq("id", this.id), Updates.set(key, value), callback);
+    default CompletableFuture<HTTPResult> sendGET(String url, String payload, String contentType) {
+        return this.sendRequest(HttpMethod.GET, url, payload, contentType);
     }
+
+    default CompletableFuture<HTTPResult> sendPOST(String url) {
+        return this.sendRequest(HttpMethod.POST, url);
+    }
+
+    default CompletableFuture<HTTPResult> sendPOST(String url, String payload, String contentType) {
+        return this.sendRequest(HttpMethod.POST, url, payload, contentType);
+    }
+
+    default CompletableFuture<HTTPResult> sendPUT(String url) {
+        return this.sendRequest(HttpMethod.PUT, url);
+    }
+
+    default CompletableFuture<HTTPResult> sendPUT(String url, String payload, String contentType) {
+        return this.sendRequest(HttpMethod.PUT, url, payload, contentType);
+    }
+
+    CompletableFuture<HTTPResult> downloadFile(String url, File saveTo);
+
+    CompletableFuture<HTTPResult> uploadFile(String url, File uploadFrom);
+
+    CompletableFuture<HTTPResult> sendRequest(HttpMethod method, String url);
+    CompletableFuture<HTTPResult> sendRequest(HttpMethod method, String url, String payload, String contentType);
 }
