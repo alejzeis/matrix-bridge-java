@@ -32,6 +32,7 @@ import io.github.jython234.matrix.appservice.network.CreateRoomRequest;
 import io.github.jython234.matrix.appservice.network.CreateUserRequest;
 import io.github.jython234.matrix.bridge.event.core.BridgedRoomCreatedEvent;
 import io.github.jython234.matrix.bridge.event.core.BridgedUserProvisionedEvent;
+import io.github.jython234.matrix.bridge.event.core.PureMatrixEvent;
 
 /**
  * Processes events between the appservice and the bridge.
@@ -47,8 +48,8 @@ class AppserviceEventHandler implements EventHandler {
 
     @Override
     public void onMatrixEvent(MatrixEvent matrixEvent) {
-        // TODO: translate events
-
+        // Throws a PureMatrixEvent, which will be handled and translated in InternalBridgeEventHandler
+        this.bridge.getEventManager().throwEvent(new PureMatrixEvent(matrixEvent));
     }
 
     @Override

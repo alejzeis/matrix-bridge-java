@@ -29,6 +29,7 @@ package io.github.jython234.matrix.bridge;
 import io.github.jython234.matrix.bridge.event.EventHandler;
 import io.github.jython234.matrix.bridge.event.EventHandlerMethod;
 import io.github.jython234.matrix.bridge.event.core.BridgedRoomCreatedEvent;
+import io.github.jython234.matrix.bridge.event.core.PureMatrixEvent;
 import io.github.jython234.matrix.bridge.event.room.CanonicalRoomAliasChangedEvent;
 import org.bson.Document;
 
@@ -45,6 +46,11 @@ class InternalBridgeEventHandler extends EventHandler {
         super();
 
         this.bridge = bridge;
+    }
+
+    @EventHandlerMethod
+    public void _onPureMatrixEvent(PureMatrixEvent event) {
+        // TODO: translate events to their simple counterparts
     }
 
     @EventHandlerMethod

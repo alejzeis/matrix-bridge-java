@@ -38,8 +38,13 @@ import io.github.jython234.matrix.bridge.configuration.BridgeConfig;
 import io.github.jython234.matrix.bridge.configuration.BridgeConfigLoader;
 import io.github.jython234.matrix.bridge.db.BridgeDatabase;
 import io.github.jython234.matrix.bridge.event.EventManager;
+import io.github.jython234.matrix.bridge.event.core.MatrixUserRegisteredEvent;
+import io.github.jython234.matrix.bridge.network.HTTPPayload;
 import io.github.jython234.matrix.bridge.network.MatrixClient;
 import io.github.jython234.matrix.bridge.network.MatrixNetworkResult;
+import io.github.jython234.matrix.bridge.network.error.MatrixErrorResponse;
+import io.github.jython234.matrix.bridge.network.request.registration.RegisterUserRequest;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.TaskScheduler;
@@ -259,7 +264,44 @@ public abstract class MatrixBridge {
     }
 
     public final CompletableFuture<MatrixNetworkResult<MatrixUser>> registerMatrixUser(String username) {
+        var future = new CompletableFuture<MatrixNetworkResult<MatrixUser>>();
+        var payload = new HTTPPayload(MatrixClient.GSON.toJson(new RegisterUserRequest(username)), "application/json");
 
+        this.client._sendMatrixRequestAdmin(payload, result -> {
+            if(result.statusCode != 200) {
+                // Get the error and complete the future
+                var error = MatrixClient.GSON.fromJson(result.body, MatrixErrorResponse.class);
+                future.complete(new MatrixNetworkResult<>(result.statusCode, error));
+            } else {
+                // Create a new MatrixUser and it's database data
+                var doc = new Document();
+                doc.put("id", "@" + username + ":" + this.config.getMatrixDomain());
+
+                var user = new MatrixUser(doc.getString("id"), this, doc);
+
+                // Insert it into the database
+                this.database.getMatrixUsers().insertOne(doc, (aVoid, throwable) -> {
+                    if(throwable != null) {
+                        this.getBridgeLogger().error("Failed to add MatrixUser to database while registering!");
+                        this.getBridgeLogger().error(throwable.getClass().getName() + ": " + throwable.getMessage());
+                        throwable.printStackTrace();
+                        // Failed to insert, don't complete the future
+                    } else {
+                        // Success! add to map and complete future
+                        synchronized (this.matrixUsers) {
+                            this.matrixUsers.put(doc.getString("id"), user);
+                        }
+
+                        // Throw the event async as we don't want to delay completing the future any longer
+                        this.eventManager.throwEventAsync(new MatrixUserRegisteredEvent(user));
+
+                        future.complete(new MatrixNetworkResult<>(result.statusCode, user));
+                    }
+                });
+            }
+        });
+
+        return future;
     }
 
     public final MatrixUser getMatrixUser(String userId) {

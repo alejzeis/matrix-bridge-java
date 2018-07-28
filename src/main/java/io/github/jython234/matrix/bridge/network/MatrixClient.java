@@ -43,7 +43,7 @@ import java.util.concurrent.CompletableFuture;
  * @author jython234
  */
 public class MatrixClient {
-    static final Gson GSON;
+    public static final Gson GSON;
 
     static {
         GSON = new GsonBuilder().create();
