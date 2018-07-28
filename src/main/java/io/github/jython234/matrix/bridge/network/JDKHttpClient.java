@@ -39,6 +39,8 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
 class JDKHttpClient implements HTTPClient {
+    private static final long REQUEST_TIMEOUT = 10;
+
     private HttpClient client;
 
     public JDKHttpClient() {
@@ -52,7 +54,7 @@ class JDKHttpClient implements HTTPClient {
         try {
             var request = HttpRequest.newBuilder()
                     .uri(new URI(url))
-                    .timeout(Duration.ofSeconds(20))
+                    .timeout(Duration.ofSeconds(REQUEST_TIMEOUT))
                     .GET()
                     .build();
 
@@ -70,7 +72,7 @@ class JDKHttpClient implements HTTPClient {
         try {
             var request = HttpRequest.newBuilder()
                     .uri(new URI(url))
-                    .timeout(Duration.ofSeconds(20))
+                    .timeout(Duration.ofSeconds(REQUEST_TIMEOUT))
                     .PUT(HttpRequest.BodyPublisher.fromFile(uploadFrom.toPath()))
                     .build();
 
@@ -89,7 +91,7 @@ class JDKHttpClient implements HTTPClient {
             var request = HttpRequest.newBuilder()
                     .uri(new URI(url))
                     .method(method.name(), HttpRequest.BodyPublisher.noBody())
-                    .timeout(Duration.ofSeconds(20)).build();
+                    .timeout(Duration.ofSeconds(REQUEST_TIMEOUT)).build();
 
             this.client.sendAsync(request, HttpResponse.BodyHandler.asString()).thenAccept(response -> future.complete(new HTTPResult(response.statusCode(), response.body())));
         } catch (URISyntaxException e) {
@@ -100,14 +102,14 @@ class JDKHttpClient implements HTTPClient {
     }
 
     @Override
-    public CompletableFuture<HTTPResult> sendRequest(HttpMethod method, String url, String payload, String contentType) {
+    public CompletableFuture<HTTPResult> sendRequest(HttpMethod method, String url, HTTPPayload payload) {
         var future = new CompletableFuture<HTTPResult>();
         try {
             var request = HttpRequest.newBuilder()
                     .uri(new URI(url))
-                    .header("Content-Type", contentType)
-                    .method(method.name(), HttpRequest.BodyPublisher.fromString(payload))
-                    .timeout(Duration.ofSeconds(20)).build();
+                    .header("Content-Type", payload.contentType)
+                    .method(method.name(), HttpRequest.BodyPublisher.fromString(payload.body))
+                    .timeout(Duration.ofSeconds(REQUEST_TIMEOUT)).build();
 
             this.client.sendAsync(request, HttpResponse.BodyHandler.asString()).thenAccept(response -> future.complete(new HTTPResult(response.statusCode(), response.body())));
         } catch (URISyntaxException e) {

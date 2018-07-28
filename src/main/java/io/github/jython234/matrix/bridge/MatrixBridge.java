@@ -39,8 +39,11 @@ import io.github.jython234.matrix.bridge.configuration.BridgeConfigLoader;
 import io.github.jython234.matrix.bridge.db.BridgeDatabase;
 import io.github.jython234.matrix.bridge.event.EventManager;
 import io.github.jython234.matrix.bridge.network.MatrixClient;
+import io.github.jython234.matrix.bridge.network.MatrixNetworkResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -50,7 +53,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.Executors;
 
 /**
  * The base class for any Matrix bridge. Implementing bridges should extend this class.
@@ -61,7 +64,10 @@ public abstract class MatrixBridge {
     public static final String SOFTWARE = "matrix-bridge-java";
     public static final String VERSION = "2.0.0-SNAPSHOT";
 
+    public final String appserviceUserID;
+
     private MatrixAppservice appservice;
+    private TaskScheduler scheduler;
 
     private Logger logger;
     private String configDirectory;
@@ -93,6 +99,10 @@ public abstract class MatrixBridge {
 
         this.appservice = new MatrixAppservice(configDirectory + File.separator + "registration.yml", this.config.getServerURL());
         this.appservice.setEventHandler(new AppserviceEventHandler(this));
+
+        this.scheduler = new ConcurrentTaskScheduler(Executors.newSingleThreadScheduledExecutor());
+
+        this.appserviceUserID = "@" + this.appservice.getRegistration().getSenderLocalpart() + ":" + this.config.getMatrixDomain();
 
         this.eventManager = new EventManager(this);
         this.eventManager.registerEventHandler(new InternalBridgeEventHandler(this));
@@ -246,6 +256,10 @@ public abstract class MatrixBridge {
         });
 
         // TODO: Query homeserver for data and check
+    }
+
+    public final CompletableFuture<MatrixNetworkResult<MatrixUser>> registerMatrixUser(String username) {
+
     }
 
     public final MatrixUser getMatrixUser(String userId) {
@@ -403,5 +417,9 @@ public abstract class MatrixBridge {
 
     public final BridgeDatabase getDatabase() {
         return database;
+    }
+
+    public TaskScheduler getScheduler() {
+        return scheduler;
     }
 }

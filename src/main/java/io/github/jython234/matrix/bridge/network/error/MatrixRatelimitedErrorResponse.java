@@ -24,19 +24,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.network;
+package io.github.jython234.matrix.bridge.network.error;
 
-/**
- * Represents the result of an HTTP request.
- *
- * @author jython234
- */
-public class HTTPResult {
-    public final String body;
-    public final int statusCode;
+import com.google.gson.annotations.SerializedName;
 
-    HTTPResult(int statusCode, String body) {
-        this.statusCode = statusCode;
-        this.body = body;
-    }
+public class MatrixRatelimitedErrorResponse extends MatrixErrorResponse {
+    /**
+     * Amount of time in milliseconds to retry the request.
+     */
+    @SerializedName("retry_after_ms")
+    public long retryAfterMs;
 }

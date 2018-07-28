@@ -27,16 +27,10 @@
 package io.github.jython234.matrix.bridge.network;
 
 /**
- * Represents the result of an HTTP request.
+ * Represents a handler that handles the result of a Matrix network operation.
  *
  * @author jython234
  */
-public class HTTPResult {
-    public final String body;
-    public final int statusCode;
-
-    HTTPResult(int statusCode, String body) {
-        this.statusCode = statusCode;
-        this.body = body;
-    }
+public interface HTTPResultHandler {
+    void handle(HTTPResult result);
 }

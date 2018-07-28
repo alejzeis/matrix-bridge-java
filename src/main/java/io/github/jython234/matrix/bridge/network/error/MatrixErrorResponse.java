@@ -24,19 +24,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.github.jython234.matrix.bridge.network;
+package io.github.jython234.matrix.bridge.network.error;
+
+import com.google.gson.annotations.SerializedName;
 
 /**
- * Represents the result of an HTTP request.
+ * Represents an error for a request returned by the Matrix homeserver.
  *
  * @author jython234
  */
-public class HTTPResult {
-    public final String body;
-    public final int statusCode;
+public class MatrixErrorResponse {
+    /**
+     * The Matrix error code for the type of error,
+     *
+     * Example: M_UNKNOWN
+     */
+    @SerializedName("errcode")
+    public String errorCode;
 
-    HTTPResult(int statusCode, String body) {
-        this.statusCode = statusCode;
-        this.body = body;
+    /**
+     * The error message.
+     */
+    @SerializedName("error")
+    public String message;
+
+    @Override
+    public String toString() {
+        return this.errorCode + ": " + this.message;
     }
 }

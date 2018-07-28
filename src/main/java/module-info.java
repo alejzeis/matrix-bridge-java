@@ -25,21 +25,31 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 module matrixjava.bridge {
+    // JDK
     requires java.base;
     requires jdk.incubator.httpclient;
 
+    // Matrix Appservice Java
     requires matrixjava.appservice;
 
+    // Logging
     requires slf4j.api;
+
+    // YAML
     requires snakeyaml;
 
+    // GSON
     requires gson;
 
+    // Apache Commons IO
     requires commons.io;
 
-    requires org.mongodb.driver.core;
+    // MongoDB
     requires bson;
+    requires org.mongodb.driver.core;
+    requires org.mongodb.driver.async.client;
 
+    // Spring/Spring Boot
     requires spring.beans;
     requires spring.core;
     requires spring.context;
@@ -47,13 +57,15 @@ module matrixjava.bridge {
     requires spring.webmvc;
     requires spring.boot;
     requires spring.boot.autoconfigure;
-    requires org.mongodb.driver.async.client;
 
+    // Exports
     exports io.github.jython234.matrix.bridge;
     exports io.github.jython234.matrix.bridge.configuration;
     exports io.github.jython234.matrix.bridge.db;
     exports io.github.jython234.matrix.bridge.event;
     exports io.github.jython234.matrix.bridge.event.core;
     exports io.github.jython234.matrix.bridge.network;
+    exports io.github.jython234.matrix.bridge.network.error;
+    //exports io.github.jython234.matrix.bridge.network.request;
     exports io.github.jython234.matrix.bridge.network.response;
 }

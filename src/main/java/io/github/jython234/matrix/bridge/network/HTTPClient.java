@@ -42,24 +42,24 @@ interface HTTPClient {
         return this.sendRequest(HttpMethod.GET, url);
     }
 
-    default CompletableFuture<HTTPResult> sendGET(String url, String payload, String contentType) {
-        return this.sendRequest(HttpMethod.GET, url, payload, contentType);
+    default CompletableFuture<HTTPResult> sendGET(String url, HTTPPayload payload) {
+        return this.sendRequest(HttpMethod.GET, url, payload);
     }
 
     default CompletableFuture<HTTPResult> sendPOST(String url) {
         return this.sendRequest(HttpMethod.POST, url);
     }
 
-    default CompletableFuture<HTTPResult> sendPOST(String url, String payload, String contentType) {
-        return this.sendRequest(HttpMethod.POST, url, payload, contentType);
+    default CompletableFuture<HTTPResult> sendPOST(String url, HTTPPayload payload) {
+        return this.sendRequest(HttpMethod.POST, url, payload);
     }
 
     default CompletableFuture<HTTPResult> sendPUT(String url) {
         return this.sendRequest(HttpMethod.PUT, url);
     }
 
-    default CompletableFuture<HTTPResult> sendPUT(String url, String payload, String contentType) {
-        return this.sendRequest(HttpMethod.PUT, url, payload, contentType);
+    default CompletableFuture<HTTPResult> sendPUT(String url, HTTPPayload payload) {
+        return this.sendRequest(HttpMethod.PUT, url, payload);
     }
 
     CompletableFuture<HTTPResult> downloadFile(String url, File saveTo);
@@ -67,5 +67,5 @@ interface HTTPClient {
     CompletableFuture<HTTPResult> uploadFile(String url, File uploadFrom);
 
     CompletableFuture<HTTPResult> sendRequest(HttpMethod method, String url);
-    CompletableFuture<HTTPResult> sendRequest(HttpMethod method, String url, String payload, String contentType);
+    CompletableFuture<HTTPResult> sendRequest(HttpMethod method, String url, HTTPPayload payload);
 }

@@ -26,14 +26,63 @@
  */
 package io.github.jython234.matrix.bridge.network;
 
-public class MatrixNetworkResult<T> {
-    public final boolean successful;
-    public final int statusCode;
-    public final T result;
+import io.github.jython234.matrix.bridge.network.error.MatrixErrorResponse;
 
-    public MatrixNetworkResult(boolean successful, int statusCode, T result) {
+/**
+ * Represents the result of a network operation for Matrix. If
+ * <code>successful</code> is true, then there will be a returned payload.
+ * If not, then <code>error</code> will contain error information as to
+ * why the request failed.
+ *
+ * @param <T> The type of payload or returned value that the network operation will return.
+ */
+public class MatrixNetworkResult<T> {
+    /**
+     * If the request was successful or not.
+     */
+    public final boolean successful;
+    /**
+     * The HTTP status code of the response.
+     */
+    public final int statusCode;
+
+    /**
+     * The returned value of the response, which differs on what the operation was. For
+     * some it may be <code>null</code>, others it may not.
+     *
+     * If {@link #successful} is <code>false</code>, then this will be <code>null</code>.
+     * See {@link #error} for the error information.
+     *
+     * For example, if you query the homeserver for a list of room members, then this will contain
+     * the list of room members. The method you use for the specific operation will have more detail
+     * on what this will contain.
+     */
+    public final T result;
+    /**
+     * Error information returned by the homeserver as to why the request failed.
+     *
+     * If {@link #successful} is <code>true</code> then this will be <code>null</code>.
+     */
+    public final MatrixErrorResponse error;
+
+    public MatrixNetworkResult(int statusCode, MatrixErrorResponse error) {
+        this.successful = false;
+        this.statusCode = statusCode;
+        this.result = null;
+        this.error = error;
+    }
+
+    public MatrixNetworkResult(int statusCode, T result) {
+        this.successful = true;
+        this.statusCode = statusCode;
+        this.result = result;
+        this.error = null;
+    }
+
+    public MatrixNetworkResult(boolean successful, int statusCode, T result, MatrixErrorResponse error) {
         this.successful = successful;
         this.statusCode = statusCode;
         this.result = result;
+        this.error = error;
     }
 }
